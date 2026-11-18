@@ -35,7 +35,7 @@ for action in ('android.intent.action.VIEW','android.intent.action.SEND','androi
       ET.SubElement(filt,'data',{A+'mimeType':mime})
 t.write(manifest,encoding='utf-8',xml_declaration=True)
 # Replace generated launcher activity with the receiver-enabled Capacitor activity.
-pkg=pathlib.Path('android/app/src/main/java/com/inkpad/app'); pkg.mkdir(parents=True,exist_ok=True)
+pkg=pathlib.Path('android/app/src/main/java/com/readerall/app'); pkg.mkdir(parents=True,exist_ok=True)
 src=pathlib.Path('native/MainActivity.java')
 (pkg/'MainActivity.java').write_text(src.read_text())
 print('Android intent filters and incoming-file activity installed')
