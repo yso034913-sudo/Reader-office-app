@@ -11,6 +11,11 @@ bash scripts/build.sh
 
 The output is `Reader All.apk` in the project root.
 
+## Android application identity
+
+- Android application ID / Capacitor appId: `com.readerall.app`. This is a new app identity; Android installs it as a separate app rather than updating an existing `com.inkpad.app` installation.
+- Keep this ID unchanged for future releases. Changing it again creates another separate app.
+
 ## Android integration
 
 - Incoming `.docx`, `.xlsx`, `.xls`, `.csv`, and `.pptx` files are registered for Android **Open with** and **Share to** actions. The native activity reads the shared content URI and passes the file into the existing Office import flow.
