@@ -44,10 +44,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk Reader.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk ReaderAll.apk
           if gh release view latest >/dev/null 2>&1; then
-            gh release upload latest Reader.apk --clobber
+            gh release upload latest ReaderAll.apk --clobber
             gh release edit latest --notes "Build ${GITHUB_SHA::7} (run ${GITHUB_RUN_NUMBER})"
           else
-            gh release create latest Reader.apk --title "Reader APK" --notes "Build ${GITHUB_SHA::7} (run ${GITHUB_RUN_NUMBER})" --latest
+            gh release create latest ReaderAll.apk --title "Reader All APK" --notes "Build ${GITHUB_SHA::7} (run ${GITHUB_RUN_NUMBER})" --latest
           fi
