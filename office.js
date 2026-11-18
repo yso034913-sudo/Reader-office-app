@@ -572,12 +572,25 @@ const AP_=document.createElement('audio');
 const needConv=m=>m.kind==='audio'&&!m.external&&!!m.path&&m.ext!=='mp3'&&!/^midi?$/.test(m.ext)&&!AP_.canPlayType(m.mime);
 const FFB='https://cdn.jsdelivr.net/npm/@ffmpeg/';
 async function getFF(){if(MP.ff)return MP.ff;
- await need('ff');const ff=new window.FFmpegWASM.FFmpeg(),urls=[];
- const blob=async(f,type,cdn)=>{let r;try{r=await fetch('lib/ffmpeg/'+f)}catch(e){}if(!r||!r.ok)r=await fetch(cdn+f);if(!r.ok)throw new Error('تحميل '+f+' فشل');const u=URL.createObjectURL(new Blob([await r.arrayBuffer()],{type}));urls.push(u);return u};
- const core=FFB+'core@0.12.6/dist/umd/',worker=FFB+'ffmpeg@0.12.10/dist/umd/';
- const cfg={classWorkerURL:await blob('814.ffmpeg.js','text/javascript',worker),coreURL:await blob('ffmpeg-core.js','text/javascript',core),wasmURL:await blob('ffmpeg-core.wasm','application/wasm',core)};
- try{await ff.load(cfg)}catch(e){try{ff.terminate()}catch(_){}throw new Error('تعذر تشغيل محوّل الصوت. تأكد من الإنترنت أو أعد تثبيت نسخة التطبيق المحدثة. '+(e&&e.message||''))}
- urls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(_){}});MP.ff=ff;return ff}
+ await need('ff');
+ const urls=[],errs=[];
+ const blob=async(local,cdn,type)=>{let r;try{r=await fetch(local)}catch(e){}if(!r||!r.ok)r=await fetch(cdn);if(!r.ok)throw new Error('تحميل '+local+' فشل ('+r.status+')');const u=URL.createObjectURL(new Blob([await r.arrayBuffer()],{type}));urls.push(u);return u};
+ const core=FFB+'core@0.12.6/dist/',worker=FFB+'ffmpeg@0.12.10/dist/umd/';
+ const withTimeout=(p,ms)=>Promise.race([p,new Promise((_,no)=>setTimeout(()=>no(new Error('انتهت مهلة تحميل المحوّل')),ms))]);
+ // Attempt 1: default classic worker (ffmpeg.js and 814.ffmpeg.js sit side by side in lib/ffmpeg/) + UMD core.
+ // Attempt 2: module worker through classWorkerURL — this REQUIRES the ESM core (a UMD core cannot be import()ed from a module worker).
+ const attempts=[
+  ['classic',async()=>({coreURL:await blob('lib/ffmpeg/ffmpeg-core.js',core+'umd/ffmpeg-core.js','text/javascript'),wasmURL:await blob('lib/ffmpeg/ffmpeg-core.wasm',core+'umd/ffmpeg-core.wasm','application/wasm')})],
+  ['module',async()=>({classWorkerURL:await blob('lib/ffmpeg/814.ffmpeg.js',worker+'814.ffmpeg.js','text/javascript'),coreURL:await blob('lib/ffmpeg/esm/ffmpeg-core.js',core+'esm/ffmpeg-core.js','text/javascript'),wasmURL:await blob('lib/ffmpeg/esm/ffmpeg-core.wasm',core+'esm/ffmpeg-core.wasm','application/wasm')})]
+ ];
+ for(const [name,mk] of attempts){
+  const ff=new window.FFmpegWASM.FFmpeg();
+  try{await withTimeout(ff.load(await mk()),120000);MP.ff=ff;break}
+  catch(e){errs.push(name+': '+(e&&e.message||e));console.warn('ffmpeg load failed ('+name+')',e);try{ff.terminate()}catch(_){}}
+ }
+ urls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(_){}});
+ if(!MP.ff)throw new Error('تعذر تشغيل محوّل الصوت. ['+errs.join(' | ')+']');
+ return MP.ff}
 async function toMp3(bytes,ext){const ff=await getFF(),i='in.'+(ext||'bin'),o='out.mp3';
  await ff.writeFile(i,new Uint8Array(bytes)); // copy: writeFile transfers (detaches) its buffer
  try{const rc=await ff.exec(['-y','-i',i,'-vn','-map_metadata','-1','-c:a','libmp3lame','-q:a','4',o]);if(rc!==0)throw new Error('ffmpeg رجّع '+rc);return new Uint8Array(await ff.readFile(o))}
@@ -680,7 +693,7 @@ async function mpPlay(m){
      const play=el.play();if(play&&play.catch)play.catch(()=>{});
     }catch(e){
      console.warn('WMA playback fallback failed',e);
-     if(tk===MP.tk&&MP.el===el){const p=E('p','mpe');p.textContent='تعذر تشغيل ملف WMA تلقائيًا. تأكد من اتصال الإنترنت أو جرّب ملفًا آخر.';r.querySelector('.mpbd').append(p)}
+     if(tk===MP.tk&&MP.el===el){const p=E('p','mpe');p.textContent='تعذر تشغيل ملف WMA تلقائيًا. اضغط ⬇ احفظ الملف وشغّله ببرنامج تاني. ('+String(e&&e.message||e).slice(0,300)+')';r.querySelector('.mpbd').append(p)}
     }finally{busy(false)}
     return
    }

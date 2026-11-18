@@ -1,6 +1,6 @@
 // Reader All service worker (web/PWA only — the APK ships its files and skips this).
 // Bump V when you want to force every cache to be rebuilt.
-const V='reader-all-v57-mobile-first';
+const V='reader-all-v42';
 const CORE=['./','index.html','app.js','ui.js','office.js','pptedit.js','scan.js','office.css','style.css','manifest.json','icon-192.png','icon-512.png','icon-maskable-512.png'];
 const CDN=[];
 self.addEventListener('install',e=>{e.waitUntil((async()=>{const c=await caches.open(V);
