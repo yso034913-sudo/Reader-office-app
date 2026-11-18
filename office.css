@@ -113,3 +113,142 @@
 .dgt svg{width:100%;height:auto;border-radius:8px;background:rgba(127,127,127,.08)}
 .dgt span{font-size:12px;color:var(--fg2);text-align:center}
 .dgt:active{background:var(--acc)}
+
+@media print{
+ body.ink-print #home,body.ink-print #ed,body.ink-print #oft,body.ink-print #ofbar{display:none!important}
+ body.ink-print #of{position:static!important;display:block!important;height:auto!important;overflow:visible!important}
+ body.ink-print #ofm{display:block!important;overflow:visible!important;height:auto!important}
+ body.ink-print #oed{overflow:visible!important;min-height:0!important}
+ body.ink-print .ofpg,body.ink-print .ofw,body.ink-print #xg,body.ink-print .pe-stage{overflow:visible!important}
+ body.ink-print *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+/* Mobile camera-to-Word OCR */
+.scanbtn{display:flex!important;justify-content:center;align-items:center;margin-top:10px;min-height:46px;background:var(--acc)!important;color:#fff!important;border-color:var(--acc)!important}
+.scanhelp{display:block;text-align:center;color:var(--fg2);font-size:12px;margin:5px 0 0}
+#ocr-panel{position:fixed;inset:0;z-index:250;background:#0009;display:flex;align-items:center;justify-content:center;padding:14px;direction:rtl}
+.ocr-card{width:min(100%,560px);max-height:90dvh;overflow:auto;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 12px 40px #0005}
+.ocr-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.ocr-head b{font-size:17px}.ocr-head button,.ocr-actions button{border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);padding:9px 13px}
+.ocr-state{font-size:13px;color:var(--fg2);margin:8px 0;min-height:22px}
+.ocr-progress{height:7px;background:var(--line);border-radius:10px;overflow:hidden;margin:8px 0 12px}.ocr-progress i{display:block;width:0;height:100%;background:var(--acc);transition:width .2s}
+.ocr-card textarea{display:block;width:100%;min-height:32vh;resize:vertical;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--bg);color:var(--fg);font:16px/1.7 system-ui,sans-serif;unicode-bidi:plaintext}
+.ocr-actions{display:flex;gap:8px;margin-top:12px}.ocr-actions button{flex:1;min-height:44px}.ocr-actions .ocr-create{background:var(--acc);color:white;border-color:var(--acc)}.ocr-actions .ocr-create:disabled{opacity:.5}
+
+/* Reader All v29 — Office editors optimized for phone screens */
+@media (max-width: 760px), (pointer: coarse) {
+  #of { inset:0; width:100vw; height:100%; height:100dvh; overflow:hidden; }
+  #oft { min-height:52px; gap:8px; padding:calc(4px + env(safe-area-inset-top)) 8px 4px; }
+  #oft button { min-width:44px; min-height:44px; padding:8px; }
+  #oft b { font-size:14px; }
+  #ofbar { min-height:50px; gap:6px; padding:5px 8px; overflow-x:auto; overflow-y:hidden; flex-wrap:nowrap; overscroll-behavior-x:contain; scrollbar-width:none; }
+  #ofbar::-webkit-scrollbar, #xtabs::-webkit-scrollbar { display:none; }
+  #ofbar button, #ofbar select, #ofbar .ofcol { min-height:44px; padding:8px 12px; font-size:14px; flex:none; }
+  #ofm { min-height:0; width:100%; }
+  .ofw { min-width:100%; }
+  .ofpg { width:100%; max-width:100%; min-height:0; margin:0 auto; padding:18px 14px !important; box-shadow:none; }
+  #oed { min-height:calc(100dvh - 180px); padding:18px 14px; font-size:16px; line-height:1.65; }
+  #oed table { display:block; max-width:100%; overflow-x:auto; }
+  #oed td, #oed th { min-width:64px; }
+
+  /* Excel: compact formula bar, finger-sized cells and sheet tabs */
+  #ofm.ofx { min-height:0; }
+  #xfb { min-height:52px; gap:6px; padding:5px 7px; }
+  #xad { min-width:54px; min-height:40px; display:grid; place-items:center; }
+  #xin { min-height:42px; font-size:16px; }
+  #xok { min-width:44px; min-height:42px; }
+  #xg { overscroll-behavior:contain; }
+  .xt td { height:34px; }
+  .xh { height:32px; }
+  .xh span { height:32px; line-height:31px; }
+  .xt th.rh { min-width:42px; }
+  #xtabs { min-height:52px; gap:6px; padding:5px 8px calc(5px + env(safe-area-inset-bottom)); }
+  #xtabs button { min-height:42px; padding:8px 14px; }
+
+  /* Media, shapes, crop and color dialogs become reachable bottom sheets */
+  .shg { align-items:flex-end; padding:0; }
+  .shb { width:100%; max-width:none; max-height:82dvh; border-radius:20px 20px 0 0; padding:12px 12px calc(14px + env(safe-area-inset-bottom)); }
+  .shh { top:-12px; min-height:48px; }
+  .shh button { min-width:44px; min-height:44px; }
+  .shgrid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+  .sht { min-height:94px; padding:9px 4px; }
+  .sht svg { width:48px; height:48px; }
+  .dgg { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .dgt { min-height:110px; }
+  .sld-dlg { left:8px; right:8px; bottom:calc(8px + env(safe-area-inset-bottom)); width:auto; max-width:none; padding:14px; }
+  .sld-dlg .sr { min-height:46px; }
+  .sld-dlg input { min-height:38px; }
+  .sld-dlg button, .crp-dlg button { min-height:48px; }
+  .crp-dlg { gap:8px; }
+  .crp-dlg>b { min-height:42px; display:flex; align-items:center; }
+  .crb i { width:30px; height:30px; }
+  .cpop { left:6px !important; right:6px !important; bottom:calc(8px + env(safe-area-inset-bottom)) !important; top:auto !important; width:auto; max-height:60dvh; overflow:auto; }
+  .cg { grid-template-columns:repeat(8,minmax(0,1fr)); gap:6px; }
+  .cg .sw { min-height:32px; }
+  #mpl.au { width:calc(100vw - 16px); bottom:calc(8px + env(safe-area-inset-bottom)); }
+  #mpl.vd, #mpl.ls { padding:calc(8px + env(safe-area-inset-top)) 8px calc(8px + env(safe-area-inset-bottom)); }
+  .ocr-card { width:100%; max-height:88dvh; padding:14px; }
+  .ocr-card textarea { min-height:30dvh; }
+  .ocr-actions button { min-height:48px; }
+}
+
+@media (max-width: 760px) {
+  /* PowerPoint editing controls: horizontal tool strips, large touch targets */
+  .pe-host { min-height:0; width:100%; overflow:hidden; }
+  .pe-tabs { min-height:58px; overflow-x:auto; overflow-y:hidden; flex:none; scrollbar-width:none; }
+  .pe-tabs::-webkit-scrollbar, .pe-pn::-webkit-scrollbar, .pe-th::-webkit-scrollbar { display:none; }
+  .pe-tabs button { flex:0 0 64px; min-width:64px; min-height:54px; padding:6px 4px; font-size:11px; }
+  .pe-tabs i { font-size:21px; }
+  .pe-pn { min-height:54px; max-height:104px; padding:6px 8px; gap:6px; overscroll-behavior-x:contain; }
+  .pe-pn button, .pe-pn select, .pe-pn label { min-width:46px; min-height:44px; padding:7px 11px; font-size:14px; }
+  .pe-pn .sep { margin-inline:2px; }
+  .pe-sc { min-height:0; padding:8px 4px; overscroll-behavior:contain; }
+  .pe-stage { max-width:none; }
+  .pe-s.sel { outline-width:2px; }
+  .pe-h { width:28px; height:28px; right:-14px; bottom:-14px; }
+  .pe-th { min-height:82px; max-height:104px; gap:8px; padding:7px 8px calc(7px + env(safe-area-inset-bottom)); overscroll-behavior-x:contain; }
+  .pe-tn { width:112px; }
+  .pe-tn .pe-stage { transform-origin:top left; }
+  .pe-drag { width:34px; height:34px; min-height:34px; }
+  .pe-nt { height:100px; min-height:100px; font-size:16px; padding:10px 12px; }
+  .pe-mp { width:46px; height:46px; }
+  .pe-px, .pe-nb { min-height:42px; padding:8px 14px; }
+}
+
+@media (max-height: 520px) and (orientation:landscape) {
+  #oft { min-height:44px; }
+  #ofbar { min-height:44px; }
+  .pe-tabs { min-height:48px; }
+  .pe-tabs button { min-height:46px; }
+  .pe-pn { min-height:46px; max-height:74px; }
+  .pe-th { min-height:64px; max-height:72px; }
+  .pe-tn { width:88px; }
+}
+
+/* Reader All v30 — compact secondary Office / PowerPoint controls for phones */
+@media (max-width: 760px), (pointer: coarse) {
+  #ofbar button,
+  #ofbar select,
+  #xtabs button,
+  .pe-pn button,
+  .pe-pn select,
+  .pe-pn label,
+  .shh button,
+  .sld-dlg .minor,
+  .crp-dlg .minor {
+    min-height:30px;
+    height:30px;
+    padding:4px 9px;
+    font-size:12px;
+    line-height:1.2;
+    border-radius:8px;
+  }
+  /* Keep key actions and controls used directly with fingers comfortably sized. */
+  #xok,
+  .ocr-actions button,
+  .sld-dlg button:not(.minor),
+  .crp-dlg button:not(.minor),
+  .scanbtn {
+    min-height:44px;
+    height:auto;
+  }
+}

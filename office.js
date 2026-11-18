@@ -33,6 +33,24 @@ const baseName=n=>n.replace(/\.(docx|xlsx|xls|csv|pptx)$/i,'');
 const MIME={doc:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',xls:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',ppt:'application/vnd.openxmlformats-officedocument.presentationml.presentation'};
 const EXT={doc:'.docx',xls:'.xlsx',ppt:'.pptx'};
 function dl(blob,name){const a=E('a'),u=URL.createObjectURL(blob);a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),60000)}
+const printOffice=()=>{document.body.classList.add('ink-print');window.print();setTimeout(()=>document.body.classList.remove('ink-print'),1200)};
+async function encryptedExport(){
+ const pass=await inkAsk('اختار كلمة مرور لتشفير نسخة الملف (8 أحرف على الأقل):');if(pass===null)return;if(pass.length<8)return alert('كلمة المرور لازم تكون 8 أحرف على الأقل');
+ try{busy(true,'جاري التشفير…');const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)),mat=await crypto.subtle.importKey('raw',new TextEncoder().encode(pass),'PBKDF2',false,['deriveKey']);
+ const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:250000,hash:'SHA-256'},mat,{name:'AES-GCM',length:256},false,['encrypt']);
+ const meta=new TextEncoder().encode(JSON.stringify({name:O.d.n+EXT[O.d.k],kind:O.d.k})),raw=new Uint8Array(O.buf),plain=new Uint8Array(8+meta.length+raw.length);plain.set(new TextEncoder().encode('RAE1'));new DataView(plain.buffer).setUint32(4,meta.length);plain.set(meta,8);plain.set(raw,8+meta.length);
+ const cipher=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,plain)),out=new Uint8Array(32+cipher.length);out.set(new TextEncoder().encode('RAC1'));out.set(salt,4);out.set(iv,20);out.set(cipher,32);dl(new Blob([out]),O.d.n+'.inkenc');busy(false);toast('تم إنشاء نسخة مشفرة AES-GCM');
+ }catch(e){fail('تعذر التشفير',e)}
+}
+async function decryptOfficeFile(file){
+ try{busy(true,'جاري فك التشفير…');const a=new Uint8Array(await file.arrayBuffer());if(a.length<48||new TextDecoder().decode(a.slice(0,4))!=='RAC1')throw 0;const pass=await inkAsk('اكتب كلمة مرور الملف المشفر:');if(pass===null){busy(false);return}
+ const salt=a.slice(4,20),iv=a.slice(20,32),mat=await crypto.subtle.importKey('raw',new TextEncoder().encode(pass),'PBKDF2',false,['deriveKey']),key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:250000,hash:'SHA-256'},mat,{name:'AES-GCM',length:256},false,['decrypt']);
+ const plain=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv},key,a.slice(32)));if(new TextDecoder().decode(plain.slice(0,4))!=='RAE1')throw 0;const ml=new DataView(plain.buffer,plain.byteOffset).getUint32(4),meta=JSON.parse(new TextDecoder().decode(plain.slice(8,8+ml))),buf=plain.slice(8+ml);if(!['doc','xls','ppt'].includes(meta.kind))throw 0;
+ const d=await createRec(meta.kind,(meta.name||'ملف').replace(/\.(docx|xlsx|pptx)$/i,'')+' (مفكوك',buf.buffer.slice(buf.byteOffset,buf.byteOffset+buf.byteLength),1);busy(false);openOffice(d,{edit:1,newDoc:meta.kind==='doc'});
+ }catch(e){busy(false);alert('فشل فك التشفير. تأكد من كلمة المرور وأن الملف سليم.')}
+}
+document.getElementById('encin')?.addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(f)decryptOfficeFile(f)});
+
 const toast=t=>{const d=E('div','oftoast');d.textContent=t;document.body.append(d);setTimeout(()=>d.remove(),2600)};
 const fail=(m,e)=>{busy(false);console.warn(e);alert(m+(e&&e.message?': '+e.message:''))};
 
@@ -73,7 +91,7 @@ async function importFile(f){
  const ext=(/\.([a-z0-9]+)$/i.exec(f.name)||[])[1]||'';let k=null;const x=ext.toLowerCase();
  if(x==='docx')k='doc';else if(x==='xlsx'||x==='xls'||x==='csv')k='xls';else if(x==='pptx')k='ppt';
  if(!k)return alert(/^(doc|ppt)$/i.test(x)?'صيغة .'+x+' القديمة مش مدعومة. حوّل الملف لـ docx / pptx وجرّب تاني.':'نوع الملف مش مدعوم.');
- try{busy(true,'جاري الاستيراد…');let buf=await f.arrayBuffer();
+ try{busy(true,'جاري الاستيراد…');let buf=await f.arrayBuffer();if(['docx','xlsx','pptx'].includes(x)&&(new TextDecoder().decode(new Uint8Array(buf).slice(0,2))!=='PK'))throw new Error('الملف ليس حزمة Office Open XML سليمة أو قد يكون محميًا بكلمة مرور.');
   if(x==='xls'){const S=await need('sj');const wb=S.read(buf);buf=S.write(wb,{bookType:'xlsx',type:'array'})}
   if(x==='csv')buf=await csvToXlsx(new TextDecoder('utf-8').decode(buf));
   const d=await createRec(k,baseName(f.name),buf);busy(false);openOffice(d)}catch(e){fail('تعذر استيراد الملف',e)}}
@@ -99,6 +117,12 @@ const blankXlsx=()=>zipStore([
  ['xl/workbook.xml',XH+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="'+ODR+'"><sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>'],
  ['xl/_rels/workbook.xml.rels',XH+'<Relationships xmlns="'+RELNS+'"><Relationship Id="rId1" Type="'+ODR+'/worksheet" Target="worksheets/sheet1.xml"/></Relationships>'],
  ['xl/worksheets/sheet1.xml',XH+'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData/></worksheet>']]);
+const WORD_TPL={
+ cv:'<h1>السيرة الذاتية</h1><h2>البيانات الشخصية</h2><p>الاسم: ....................</p><p>الهاتف: ....................</p><p>البريد الإلكتروني: ....................</p><h2>الملخص المهني</h2><p>اكتب نبذة مختصرة عن خبراتك ومهاراتك.</p><h2>الخبرات العملية</h2><p><b>المسمى الوظيفي — جهة العمل</b></p><ul><li>المسؤولية أو الإنجاز الأول</li><li>المسؤولية أو الإنجاز الثاني</li></ul><h2>التعليم</h2><p>المؤهل — المؤسسة التعليمية — السنة</p><h2>المهارات</h2><ul><li>مهارة أولى</li><li>مهارة ثانية</li></ul>',
+ report:'<h1>عنوان التقرير</h1><p>إعداد: ....................　 التاريخ: ....................</p><h2>الملخص التنفيذي</h2><p>اكتب ملخصًا موجزًا لأهم النتائج.</p><h2>المقدمة</h2><p>خلفية الموضوع وهدف التقرير.</p><h2>المنهجية</h2><p>طريقة جمع المعلومات وتحليلها.</p><h2>النتائج والمناقشة</h2><p>اعرض النتائج الرئيسية هنا.</p><h2>التوصيات</h2><ol><li>التوصية الأولى</li><li>التوصية الثانية</li></ol><h2>المراجع</h2><p>أضف المصادر المستخدمة.</p>',
+ letter:'<h1>عنوان الخطاب</h1><p>التاريخ: ....................</p><p>السيد/السيدة: ....................</p><p>تحية طيبة وبعد،</p><p>اكتب نص الخطاب هنا...</p><p>وتفضلوا بقبول فائق الاحترام،</p><p>الاسم: ....................</p><p>التوقيع: ....................</p>'
+};
+wire('tpl-doc',async()=>{const c=await inkAsk('اختر قالب Word: cv للسيرة الذاتية أو report للتقرير أو letter للخطاب','cv');if(!c)return;const k=c.trim().toLowerCase();if(!WORD_TPL[k])return toast('استخدم cv أو report أو letter');try{busy(true,'جاري تجهيز القالب…');const dx=await need('dx'),tmp=E('div');tmp.innerHTML=WORD_TPL[k];const blob=await htmlToDocx(dx,tmp),buf=await blob.arrayBuffer(),d=await createRec('doc',({cv:'سيرة ذاتية',report:'تقرير',letter:'خطاب'}[k]),buf,1);busy(false);openOffice(d,{edit:1,newDoc:1})}catch(e){fail('تعذر إنشاء القالب',e)}});
 wire('nw-doc',async()=>{try{busy(true,'جاري إنشاء المستند…');const buf=await blankDocx();
  const d=await createRec('doc','مستند '+new Date().toLocaleDateString('ar-EG'),buf,1);busy(false);openOffice(d,{edit:1,newDoc:1})}catch(e){fail('تعذر إنشاء المستند',e)}});
 // ---------- new blank PowerPoint (built from scratch: 16:9, one title slide) ----------
@@ -132,6 +156,7 @@ function pptNew(){
   ['ppt/slides/slide1.xml',slide],['ppt/slides/_rels/slide1.xml.rels',rels([['slideLayout','../slideLayouts/slideLayout1.xml']])],['ppt/theme/theme1.xml',theme]].map(([k,v])=>[k,te.encode(v)]));
  return zipBuild({m:{}},new Set(),put).arrayBuffer()}
 wire('nw-ppt',async()=>{try{const buf=await pptNew(),d=await createRec('ppt','عرض '+new Date().toLocaleDateString('ar-EG'),buf,1);openOffice(d,{edit:1})}catch(e){fail('تعذر إنشاء العرض',e)}});
+wire('tpl-xls',async()=>{const c=await inkAsk('اختر قالب Excel: budget للميزانية أو attendance للحضور أو inventory للمخزون','budget');if(!c)return;const k=c.trim().toLowerCase();if(!['budget','attendance','inventory'].includes(k))return toast('استخدم budget أو attendance أو inventory');try{busy(true,'جاري إنشاء القالب…');const ex=await need('xl'),wb=new ex.Workbook(),ws=wb.addWorksheet(({budget:'الميزانية',attendance:'الحضور',inventory:'المخزون'}[k]));const rows={budget:[['البند','المبلغ المخطط','المبلغ الفعلي','الفرق'],['إيجار',0,0,{formula:'B2-C2'}],['طعام',0,0,{formula:'B3-C3'}],['مواصلات',0,0,{formula:'B4-C4'}],['الإجمالي',{formula:'SUM(B2:B4)'},{formula:'SUM(C2:C4)'},{formula:'B5-C5'}]],attendance:[['الاسم','التاريخ','الحالة','ملاحظات'],['','','حاضر',''],['','','غائب','']],inventory:[['الصنف','الكمية','سعر الوحدة','الإجمالي'],['',0,0,{formula:'B2*C2'}],['',0,0,{formula:'B3*C3'}],['الإجمالي','','',{formula:'SUM(D2:D3)'}]]};ws.addRows(rows[k]);ws.getRow(1).font={bold:true,color:{argb:'FFFFFFFF'}};ws.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1E40AF'}};ws.columns.forEach(col=>col.width=20);ws.views=[{state:'frozen',ySplit:1}];const b=await wb.xlsx.writeBuffer(),d=await createRec('xls',({budget:'ميزانية',attendance:'سجل حضور',inventory:'مخزون'}[k]),b,1);busy(false);openOffice(d)}catch(e){fail('تعذر إنشاء قالب Excel',e)}});
 wire('nw-xls',async()=>{try{busy(true,'جاري إنشاء الجدول…');const buf=await blankXlsx();const d=await createRec('xls','جدول '+new Date().toLocaleDateString('ar-EG'),buf,1);busy(false);openOffice(d)}catch(e){fail('تعذر إنشاء الجدول',e)}});
 
 // ---------- PDF export (raster pages) ----------
@@ -160,7 +185,7 @@ async function wordView(){
 async function wordEdit(){
  let html='<p><br></p>';
  if(!O.opt.newDoc){const mm=await need('mammoth');const r=await mm.convertToHtml({arrayBuffer:O.buf.slice(0)},{convertImage:mm.images.dataUri});html=r.value||html;toast('وضع التعديل بيبسّط التنسيق. حفظك هيتعمل كنسخة جديدة.')}
- O.newDoc=!!O.opt.newDoc;$('#ofm').className='ofscroll';$('#ofm').innerHTML='<div class="ofpg"><div id="oed" contenteditable="true" spellcheck="false"></div></div>';
+ O.newDoc=!!O.opt.newDoc;O.wordPage=O.wordPage||{landscape:false,margin:1440};$('#ofm').className='ofscroll';$('#ofm').innerHTML='<div class="ofpg"><div id="oed" contenteditable="true" spellcheck="true"></div></div>';
  const ed=$('#oed');ed.innerHTML=html;ed.addEventListener('input',()=>O.dirty=1);
  let rg=null;document.addEventListener('selectionchange',O.sc=()=>{const s=getSelection();if(s.rangeCount&&ed.contains(s.anchorNode))rg=s.getRangeAt(0).cloneRange()});
  const restore=()=>{ed.focus();if(rg){const s=getSelection();s.removeAllRanges();s.addRange(rg)}};
@@ -174,6 +199,18 @@ async function wordEdit(){
   let h='<table style="border-collapse:collapse;width:100%">';for(let i=0;i<R;i++){h+='<tr>';for(let j=0;j<C;j++)h+='<td style="border:1px solid #000;padding:4px">&nbsp;</td>';h+='</tr>'}restore();document.execCommand('insertHTML',false,h+'</table><p><br></p>');O.dirty=1};
  const img=()=>{const i=E('input');i.type='file';i.accept='image/*';i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{restore();document.execCommand('insertHTML',false,'<img src="'+r.result+'" style="max-width:100%">');O.dirty=1};r.readAsDataURL(f)};i.click()};
  const dir=d=>()=>{const b=blockOf();if(!b)return;b.setAttribute('dir',d);b.style.textAlign=d==='rtl'?'right':'left';O.dirty=1};
+ const tableCell=()=>{const n=getSelection().anchorNode,el=n&&(n.nodeType===1?n:n.parentElement),td=el&&el.closest&&el.closest('td,th');return td&&ed.contains(td)?td:null};
+ const tableOp=async op=>{const td=tableCell();if(!td)return alert('حط المؤشر داخل خلية في الجدول الأول.');const tr=td.parentElement,tbl=tr.parentElement.closest('table');if(!tbl)return;
+  if(op==='row+')tr.parentElement.insertBefore(tr.cloneNode(true),tr.nextSibling);
+  if(op==='row-'){if(tbl.rows.length<2)return alert('لازم يفضل صف واحد على الأقل.');tr.remove()}
+  if(op==='col+'){const i=td.cellIndex;[...tbl.rows].forEach(r=>{const c=r.cells[i].cloneNode(true);c.innerHTML='&nbsp;';r.insertBefore(c,r.cells[i].nextSibling)})}
+  if(op==='col-'){const i=td.cellIndex;if(tr.cells.length<2)return alert('لازم يفضل عمود واحد على الأقل.');[...tbl.rows].forEach(r=>r.cells[i]&&r.cells[i].remove())}O.dirty=1};
+ const pageSetup=async()=>{const o=await inkAsk('اتجاه الصفحة: اكتب رأسي أو أفقي','رأسي');if(!o)return;const landscape=/أفقي/.test(o);const m=await inkAsk('الهامش بالبوصة (0.5 إلى 1.5)','1');if(m===null)return;const inch=Math.max(.5,Math.min(1.5,parseFloat(m)||1));O.wordPage={landscape,margin:Math.round(inch*1440)};O.dirty=1;toast('إعداد الصفحة هيتطبق عند الحفظ')};
+ const replaceText=async()=>{const a=await inkAsk('ابحث عن النص');if(!a)return;const b=await inkAsk('استبدال بـ');if(b===null)return;let count=0;const w=document.createTreeWalker(ed,NodeFilter.SHOW_TEXT);const ns=[];while(w.nextNode())ns.push(w.currentNode);ns.forEach(n=>{if(n.nodeValue.includes(a)){const parts=n.nodeValue.split(a);count+=parts.length-1;n.nodeValue=parts.join(b)}});if(count)O.dirty=1;toast(count?'تم استبدال '+count+' موضع':'ملقتش النص')};
+ const stats=()=>{const t=(ed.innerText||'').trim(),words=t? t.split(/\s+/).length:0;toast('الكلمات: '+words+' · الأحرف: '+t.length)};
+ const insertTOC=()=>{const hs=[...ed.querySelectorAll('h1,h2,h3')].map(h=>({tag:h.tagName,text:(h.innerText||'').trim()})).filter(x=>x.text);if(!hs.length){toast('استخدم أنماط عنوان 1 أو 2 أو 3 أولاً');return}const html='<div data-reader-toc="1"><h2>جدول المحتويات</h2><ol>'+hs.map(x=>'<li style="margin-right:'+((+x.tag.slice(1)-1)*18)+'px">'+esc(x.text)+'</li>').join('')+'</ol></div><p><br></p>';restore();document.execCommand('insertHTML',false,html);O.dirty=1;toast('تم إدراج جدول المحتويات؛ حدّثه بإعادة إدراجه بعد تعديل العناوين')};
+ const insertDate=()=>{restore();document.execCommand('insertText',false,new Date().toLocaleDateString('ar-EG'));O.dirty=1};
+ const insertPageBreak=()=>{restore();document.execCommand('insertHTML',false,'<p data-page-break="1"><br></p>');O.dirty=1};
  setBar([
   {t:'💾',title:'حفظ',f:save},{t:'⬇ DOCX',f:async()=>{await save(1)}},'|',
   {t:'↶',f:ex('undo'),title:'تراجع'},{t:'↷',f:ex('redo'),title:'إعادة'},'|',
@@ -185,10 +222,12 @@ async function wordEdit(){
   {t:'⬅',f:ex('justifyLeft'),title:'يسار'},{t:'↔',f:ex('justifyCenter'),title:'وسط'},{t:'➡',f:ex('justifyRight'),title:'يمين'},{t:'☰',f:ex('justifyFull'),title:'ضبط'},
   {t:'RTL',f:dir('rtl')},{t:'LTR',f:dir('ltr')},'|',
   {t:'• قائمة',f:ex('insertUnorderedList')},{t:'1. قائمة',f:ex('insertOrderedList')},
-  sel(['عنوان 1','عنوان 2','عنوان 3','فقرة'],'النمط',v=>{restore();document.execCommand('formatBlock',false,{'عنوان 1':'H1','عنوان 2':'H2','عنوان 3':'H3','فقرة':'P'}[v]);O.dirty=1}),'|',
-  {t:'▦ جدول',f:tbl},{t:'🖼 صورة',f:img}]);
+  sel(['عنوان 1','عنوان 2','عنوان 3','عنوان 4','فقرة','اقتباس'],'النمط',v=>{restore();document.execCommand('formatBlock',false,{'عنوان 1':'H1','عنوان 2':'H2','عنوان 3':'H3','عنوان 4':'H4','فقرة':'P','اقتباس':'BLOCKQUOTE'}[v]);O.dirty=1}),'|',
+  {t:'x²',title:'مرتفع',f:ex('superscript')},{t:'x₂',title:'منخفض',f:ex('subscript')},{t:'مسافة بادئة +',f:ex('indent')},{t:'مسافة بادئة −',f:ex('outdent')},{t:'مسح التنسيق',f:ex('removeFormat')},
+  {t:'▦ جدول',f:tbl},{t:'＋ صف',f:()=>tableOp('row+')},{t:'− صف',f:()=>tableOp('row-')},{t:'＋ عمود',f:()=>tableOp('col+')},{t:'− عمود',f:()=>tableOp('col-')},{t:'🖼 صورة',f:img},{t:'🎙 إملاء صوتي',f:()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('الإملاء الصوتي غير مدعوم على هذا الجهاز أو المتصفح');return}const rec=new SR();rec.lang='ar-EG';rec.interimResults=false;rec.maxAlternatives=1;restore();toast('اتكلم الآن…');rec.onresult=e=>{const t=e.results&&e.results[0]&&e.results[0][0]&&e.results[0][0].transcript;if(t){restore();document.execCommand('insertText',false,t+' ');O.dirty=1}};rec.onerror=e=>toast('تعذر الإملاء الصوتي: '+(e.error||'حاول مرة أخرى'));rec.start()}},'|',
+  {t:'📄 إعداد الصفحة',f:pageSetup},{t:'فاصل صفحة',f:insertPageBreak},{t:'📑 فهرس تلقائي',f:insertTOC},{t:'📅 تاريخ',f:insertDate},{t:'بحث/استبدال',f:replaceText},{t:'🔢 إحصاء',f:stats},{t:'⬇ PDF',f:pdf},{t:'🖨 طباعة',f:printOffice},{t:'🔐 نسخة مشفرة',f:encryptedExport}]);
  async function save(dlOnly){try{busy(true,'جاري الحفظ…');const dx=await need('dx');const blob=await htmlToDocx(dx,ed),buf=await blob.arrayBuffer();await saveBuf(buf);busy(false);if(dlOnly===1)dl(new Blob([buf],{type:MIME.doc}),O.d.n+'.docx');else toast('اتحفظ ✅')}catch(e){fail('فشل الحفظ',e)}}
- async function pdf(){try{busy(true,'جاري تحويل PDF…');const box=E('div','ofprint');box.innerHTML=ed.innerHTML;document.body.append(box);const b=await longToPdf(box,1.4142);box.remove();busy(false);dl(b,O.d.n+'.pdf')}catch(e){fail('فشل التصدير',e)}}
+ async function pdf(){let box;try{busy(true,'جاري تحويل PDF…');box=E('div','ofprint');box.innerHTML=ed.innerHTML;document.body.append(box);const b=await longToPdf(box,1.4142);box.remove();busy(false);dl(b,O.d.n+'.pdf')}catch(e){box&&box.remove();fail('فشل التصدير',e)}}
  O.cleanup=()=>document.removeEventListener('selectionchange',O.sc)}
 
 // ---- HTML -> DOCX ----
@@ -221,7 +260,7 @@ function para(dx,el,nodes,root,x){
  const out=[];runs(dx,nodes,root,out);const txt=nodes.map(n=>n.textContent||'').join(''),fs=firstStrong(txt);
  const dv=el.getAttribute&&el.getAttribute('dir'),bidi=dv==='rtl'?true:dv==='ltr'?false:fs===1;
  const cs=getComputedStyle(el),H={1:dx.HeadingLevel.HEADING_1,2:dx.HeadingLevel.HEADING_2,3:dx.HeadingLevel.HEADING_3,4:dx.HeadingLevel.HEADING_4,5:dx.HeadingLevel.HEADING_5,6:dx.HeadingLevel.HEADING_6};
- const o={children:out,bidirectional:bidi||undefined,alignment:ALIGN(dx,el,bidi),spacing:{after:Math.round((parseFloat(cs.marginBottom)||0)*15)},...x};
+ const o={children:out,bidirectional:bidi||undefined,alignment:ALIGN(dx,el,bidi),spacing:{after:Math.round((parseFloat(cs.marginBottom)||0)*15)},pageBreakBefore:el&&el.dataset&&el.dataset.pageBreak==='1'||undefined,...x};
  const m=/^H([1-6])$/.exec(el.tagName||'');if(m&&!x.noHead)o.heading=H[+m[1]];delete o.noHead;return new dx.Paragraph(o)}
 const BLK=/^(P|DIV|H[1-6]|UL|OL|LI|TABLE|BLOCKQUOTE|PRE|SECTION)$/;
 const hasBlk=n=>[...n.children].some(c=>BLK.test(c.tagName));
@@ -248,7 +287,7 @@ function tbl(dx,t,root){
 async function htmlToDocx(dx,ed){LI=0;const ch=[];blocks(dx,ed,ed,ch);if(!ch.length)ch.push(new dx.Paragraph({}));
  const doc=new dx.Document({styles:{default:{document:{run:{font:'Calibri',size:24}}}},
   numbering:{config:[{reference:'num',levels:[0,1,2,3].map(l=>({level:l,format:dx.LevelFormat.DECIMAL,text:'%'+(l+1)+'.',alignment:dx.AlignmentType.START,style:{paragraph:{indent:{left:720*(l+1),hanging:360}}}}))}]},
-  sections:[{properties:{page:{size:{width:11906,height:16838}}},children:ch}]});
+  sections:[{properties:{page:{size:O&&O.wordPage&&O.wordPage.landscape?{width:16838,height:11906}:{width:11906,height:16838},margin:{top:O&&O.wordPage?O.wordPage.margin:1440,right:O&&O.wordPage?O.wordPage.margin:1440,bottom:O&&O.wordPage?O.wordPage.margin:1440,left:O&&O.wordPage?O.wordPage.margin:1440}}},children:ch}]});
  return dx.Packer.toBlob(doc)}
 
 // ====================== EXCEL ======================
@@ -426,6 +465,11 @@ function sortCol(asc){pushU();const sh=curSh(),q=rng(),rows=[];let last=-1;for(c
  rows.sort((a,b)=>{const x=a.key,y=b.key;if(x===undefined)return 1;if(y===undefined)return -1;const d=typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),'ar');return asc?d:-d});
  for(let r=r1;r<=r2;r++)for(let c=0;c<sh.NC;c++)delete sh.cells[K(r,c)];
  rows.forEach((x,i)=>{for(const c in x.row)sh.cells[K(r1+i,+c)]=x.row[c]});recalc(sh,true).then(xrender)}
+async function xformula(){const q=rng(),range=colName(q.c1)+(q.r1+1)+':'+colName(q.c2)+(q.r2+1);const opts=['SUM','AVERAGE','MIN','MAX','COUNT','COUNTA','COUNTBLANK','PRODUCT','MEDIAN','MODE','STDEV','VAR','ABS','ROUND','ROUNDUP','ROUNDDOWN','INT','MOD','SQRT','POWER','IF','IFERROR','AND','OR','NOT','SUMIF','COUNTIF','AVERAGEIF','CONCATENATE','LEFT','RIGHT','MID','LEN','UPPER','LOWER','TRIM'];const f=await inkAsk('اكتب اسم الدالة:\n'+opts.join(' · '),'SUM');if(!f)return;const fn=f.trim().toUpperCase();if(!opts.includes(fn))return toast('اسم الدالة غير موجود بالقائمة');let args=range;if(!['SUM','AVERAGE','MIN','MAX','COUNT','COUNTA','COUNTBLANK','PRODUCT','MEDIAN','MODE','STDEV','VAR'].includes(fn)){const ex={IF:'A1>0,\"نعم\",\"لا\"',IFERROR:'A1/B1,0',ROUND:'A1,2',ROUNDUP:'A1,0',ROUNDDOWN:'A1,0',MOD:'A1,2',POWER:'A1,2',LEFT:'A1,3',RIGHT:'A1,3',MID:'A1,2,3',SUMIF:'A1:A10,\">0\",B1:B10',COUNTIF:'A1:A10,\">0\"',AVERAGEIF:'A1:A10,\">0\"',CONCATENATE:'A1,B1',AND:'A1>0,B1>0',OR:'A1>0,B1>0',NOT:'A1>0'};const a=await inkAsk('اكتب معاملات '+fn+' بدون علامة ='+fn+' (مثال: '+(ex[fn]||'A1')+')',ex[fn]||'A1');if(a===null)return;args=a.trim()}commit('='+fn+'('+args+')',q.r1,q.c1)}
+function xclear(){const q=rng(),sh=curSh();pushU();for(let r=q.r1;r<=q.r2;r++)for(let c=q.c1;c<=q.c2;c++){const k=K(r,c),o=sh.cells[k];if(o){delete o.v;delete o.f;delete o.cv;if(!o.s||!Object.keys(o.s).length)delete sh.cells[k]}}recalc(sh,true).then(()=>{xrender();loadFB()})}
+async function xfindreplace(){const find=await inkAsk('ابحث عن:', '');if(!find)return;const rep=await inkAsk('استبدال بـ (اتركه فارغًا للحذف):','');const sh=curSh();let n=0;pushU();for(const k in sh.cells){const o=sh.cells[k];if(typeof o.v==='string'&&o.v.includes(find)){o.v=o.v.split(find).join(rep);n++}}xrender();loadFB();toast('تم استبدال '+n+' خلية')}
+function xinsertDate(){const q=rng();commit(String(d2s(new Date())),q.r1,q.c1).then(()=>setS('nf','dd/mm/yyyy'))}
+function xduplicateSheet(){const sh=curSh(),copy=JSON.parse(JSON.stringify(sh));let name=(sh.name+' Copy').slice(0,31),base=name,i=2;while(XS.X.sheets.some(x=>x.name===name)){name=(base.slice(0,27)+' '+i++).slice(0,31)}pushU();copy.name=name;XS.X.sheets.splice(XS.cur+1,0,copy);XS.cur++;xtabs();xrender();loadFB()}
 function xtabs(){const t=$('#xtabs');t.innerHTML='';XS.X.sheets.forEach((sh,i)=>{const b=E('button',i===XS.cur?'on':'');b.textContent=sh.name;b.onclick=()=>{XS.cur=i;XS.sel={r1:0,c1:0,r2:0,c2:0};$('#xg').scrollTop=0;xtabs();xrender();loadFB()};t.append(b)});
  const add=E('button','',' ＋ ');add.onclick=()=>{pushU();let n=XS.X.sheets.length+1;while(XS.X.sheets.some(s=>s.name==='Sheet'+n))n++;XS.X.sheets.push(newSheet('Sheet'+n));XS.cur=XS.X.sheets.length-1;xtabs();xrender();loadFB()};
  const ren=E('button','','✎');ren.onclick=async()=>{const n=await inkAsk('اسم الشيت:',curSh().name);if(n&&n.trim()&&!XS.X.sheets.some((s,i)=>i!==XS.cur&&s.name===n.trim())){pushU();curSh().name=n.trim().slice(0,31);xtabs()}};
@@ -437,12 +481,13 @@ function xbar(){
  const xcol=(ph,key)=>colorBtn({label:ph,title:key==='bg'?'لون الخلفية':'لون الخط',init:key==='bg'?'#FFFF00':'#FF0000',onPick:c=>setS(key,c)});
  setBar([{t:'💾',title:'حفظ',f:xsave},{t:'⬇ XLSX',f:()=>xsave(1)},'|',
   {t:'↶',f:undo,title:'تراجع'},{t:'↷',f:redo,title:'إعادة'},'|',
-  {t:'<b>B</b>',f:()=>tog('b')},{t:'<i>I</i>',f:()=>tog('i')},{t:'<u>U</u>',f:()=>tog('u')},xcol('A لون','c'),xcol('🎨 خلفية','bg'),
+  {t:'ƒx دوال',f:xformula},{t:'بحث/استبدال',f:xfindreplace},{t:'تاريخ اليوم',f:xinsertDate},{t:'مسح المحتوى',f:xclear},'|',
+  {t:'<b>B</b>',f:()=>tog('b')},{t:'<i>I</i>',f:()=>tog('i')},{t:'<u>U</u>',f:()=>tog('u')},{t:'S̶',f:()=>tog('st'),title:'يتوسطه خط'},xcol('A لون','c'),xcol('🎨 خلفية','bg'),
   {t:'⬅',f:()=>setS('al','left')},{t:'↔',f:()=>setS('al','center')},{t:'➡',f:()=>setS('al','right')},{t:'⏎ التفاف',f:()=>tog('w')},{t:'▦ حدود',f:()=>tog('bd')},{el:nf},'|',
   {t:'⬚ نطاق',f:b=>{XS.ext=!XS.ext;b.classList.toggle('on',XS.ext)}},{t:'⊞ دمج',f:()=>merge()},{t:'⊟ فك',f:()=>merge(1)},'|',
   {t:'نسخ',f:()=>copy()},{t:'قص',f:()=>copy(1)},{t:'لصق',f:paste},{t:'⬇ تعبئة',f:()=>fill('d')},{t:'➡ تعبئة',f:()=>fill('r')},'|',
-  {t:'＋صف',f:()=>struct('r',rng().r1,1,0)},{t:'＋عمود',f:()=>struct('c',rng().c1,1,0)},{t:'－صف',f:()=>{const q=rng();struct('r',q.r1,q.r2-q.r1+1,1)}},{t:'－عمود',f:()=>{const q=rng();struct('c',q.c1,q.c2-q.c1+1,1)}},'|',
-  {t:'↔＋',f:()=>colw(16)},{t:'↔－',f:()=>colw(-16)},{t:'A→Z',f:()=>sortCol(1)},{t:'Z→A',f:()=>sortCol(0)}])}
+  {t:'نسخ الشيت',f:xduplicateSheet},{t:'＋صف',f:()=>struct('r',rng().r1,1,0)},{t:'＋عمود',f:()=>struct('c',rng().c1,1,0)},{t:'－صف',f:()=>{const q=rng();struct('r',q.r1,q.r2-q.r1+1,1)}},{t:'－عمود',f:()=>{const q=rng();struct('c',q.c1,q.c2-q.c1+1,1)}},'|',
+  {t:'↔＋',f:()=>colw(16)},{t:'↔－',f:()=>colw(-16)},{t:'A→Z',f:()=>sortCol(1)},{t:'Z→A',f:()=>sortCol(0)},{t:'🖨 طباعة',f:printOffice},{t:'🔐 نسخة مشفرة',f:encryptedExport}])}
 async function xsave(dlOnly){try{busy(true,'جاري الحفظ…');if(document.activeElement===$('#xin'))$('#xin').blur();const buf=await xlsBuild(XS.X);await saveBuf(buf);busy(false);if(dlOnly===1)dl(new Blob([buf],{type:MIME.xls}),O.d.n+'.xlsx');else toast('اتحفظ ✅')}catch(e){fail('فشل الحفظ',e)}}
 async function xpdf(){try{busy(true,'جاري تحويل PDF…');const sh=curSh();let R=0,C=0;for(const k in sh.cells){const [r,c]=k.split(',').map(Number);R=Math.max(R,r);C=Math.max(C,c)}
  const cov={},mg={};for(const m of sh.merges){mg[K(m[0],m[1])]=m;for(let r=m[0];r<=m[2];r++)for(let c=m[1];c<=m[3];c++)if(r!==m[0]||c!==m[1])cov[K(r,c)]=1}
@@ -527,24 +572,22 @@ const AP_=document.createElement('audio');
 const needConv=m=>m.kind==='audio'&&!m.external&&!!m.path&&m.ext!=='mp3'&&!/^midi?$/.test(m.ext)&&!AP_.canPlayType(m.mime);
 const FFB='https://cdn.jsdelivr.net/npm/@ffmpeg/';
 async function getFF(){if(MP.ff)return MP.ff;
- await need('ff');const ff=new window.FFmpegWASM.FFmpeg();
- const blob=async(f,type,cdn)=>{let r;try{r=await fetch('lib/ffmpeg/'+f)}catch(e){}if(!r||!r.ok)r=await fetch(cdn+f);if(!r.ok)throw new Error('تحميل '+f+' فشل');return URL.createObjectURL(new Blob([await r.arrayBuffer()],{type}))};
- const core=FFB+'core@0.12.6/dist/umd/',cfg={coreURL:await blob('ffmpeg-core.js','text/javascript',core),wasmURL:await blob('ffmpeg-core.wasm','application/wasm',core)};
- try{await ff.load(cfg)}catch(e){cfg.classWorkerURL=await blob('814.ffmpeg.js','text/javascript',FFB+'ffmpeg@0.12.10/dist/umd/');await ff.load(cfg)}
- MP.ff=ff;return ff}
+ await need('ff');const ff=new window.FFmpegWASM.FFmpeg(),urls=[];
+ const blob=async(f,type,cdn)=>{let r;try{r=await fetch('lib/ffmpeg/'+f)}catch(e){}if(!r||!r.ok)r=await fetch(cdn+f);if(!r.ok)throw new Error('تحميل '+f+' فشل');const u=URL.createObjectURL(new Blob([await r.arrayBuffer()],{type}));urls.push(u);return u};
+ const core=FFB+'core@0.12.6/dist/umd/',worker=FFB+'ffmpeg@0.12.10/dist/umd/';
+ const cfg={classWorkerURL:await blob('814.ffmpeg.js','text/javascript',worker),coreURL:await blob('ffmpeg-core.js','text/javascript',core),wasmURL:await blob('ffmpeg-core.wasm','application/wasm',core)};
+ try{await ff.load(cfg)}catch(e){try{ff.terminate()}catch(_){}throw new Error('تعذر تشغيل محوّل الصوت. تأكد من الإنترنت أو أعد تثبيت نسخة التطبيق المحدثة. '+(e&&e.message||''))}
+ urls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(_){}});MP.ff=ff;return ff}
 async function toMp3(bytes,ext){const ff=await getFF(),i='in.'+(ext||'bin'),o='out.mp3';
  await ff.writeFile(i,new Uint8Array(bytes)); // copy: writeFile transfers (detaches) its buffer
  try{const rc=await ff.exec(['-y','-i',i,'-vn','-map_metadata','-1','-c:a','libmp3lame','-q:a','4',o]);if(rc!==0)throw new Error('ffmpeg رجّع '+rc);return new Uint8Array(await ff.readFile(o))}
  finally{try{await ff.deleteFile(i)}catch(e){}try{await ff.deleteFile(o)}catch(e){}}}
-
-// ----- standalone: pick audio/video files -> mp3 -> save/share -----
-['fcv','fcv2'].forEach(id=>{const el=document.getElementById(id);el&&(el.onchange=async e=>{const fs=[...e.target.files];e.target.value='';
- for(let i=0;i<fs.length;i++){const f=fs[i];
-  try{busy(true,'جاري تحويل '+(fs.length>1?(i+1)+' من '+fs.length+': ':'')+f.name+'… (أول مرة بتاخد وقت)');
-   const d=await toMp3(await f.arrayBuffer(),extOf(f.name)||'bin');busy(false);
-   dl(new Blob([d],{type:'audio/mpeg'}),f.name.replace(/\.[^.]+$/,'')+'.mp3');toast('اتحوّل: '+f.name);
-   if(i<fs.length-1)await new Promise(r=>setTimeout(r,1500))}
-  catch(err){fail('فشل تحويل '+f.name,err);break}}})});
+// WMA playback: decode to an in-memory PCM/WAV stream only when the device cannot
+// decode WMA natively. The original PPTX media and downloaded WMA are never changed.
+async function decodeWmaForPlayback(bytes){const ff=await getFF(),i='playback.wma',o='playback.wav';
+ await ff.writeFile(i,new Uint8Array(bytes));
+ try{const rc=await ff.exec(['-y','-i',i,'-vn','-map_metadata','-1','-acodec','pcm_s16le',o]);if(rc!==0)throw new Error('WMA decoder returned '+rc);return new Uint8Array(await ff.readFile(o))}
+ finally{try{await ff.deleteFile(i)}catch(e){}try{await ff.deleteFile(o)}catch(e){}}}
 
 // writes a new zip: copies untouched entries byte-for-byte, drops `del`, adds/replaces `put`
 function zipBuild(z,del,put){const parts=[],cd=[],te=new TextEncoder();let off=0;
@@ -562,27 +605,31 @@ function zipBuild(z,del,put){const parts=[],cd=[],te=new TextEncoder();let off=0
  e.setUint32(0,0x06054b50,true);e.setUint16(8,k,true);e.setUint16(10,k,true);e.setUint32(12,n,true);e.setUint32(16,off,true);
  return new Blob([...parts,...cd,new Uint8Array(e.buffer)],{type:MIME.ppt})}
 
-async function pptConvertAll(){
- const todo=[...new Map(MP.items.filter(needConv).map(m=>[m.path,m])).values()];
- if(!todo.length)return toast('مفيش صوت محتاج تحويل');
- if(!await inkYN('هحوّل '+todo.length+' ملف صوت لـ mp3 وأحفظ نسخة PPTX جديدة. الأصل ما بيتلمسش.','ابدأ','إلغاء'))return;
- try{const del=new Set(),put=new Map(),ren={},td=new TextDecoder(),te=new TextEncoder(),esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  for(let i=0;i<todo.length;i++){const m=todo[i];busy(true,'جاري تحويل '+(i+1)+' من '+todo.length+'… (أول مرة بتاخد وقت)');
-   let d=MP.cv.get(m.path);if(!d){d=await toMp3(await zipRead(MP.z,m.path),m.ext);MP.cv.set(m.path,d)}
-   let nn=m.path.replace(/\.[^./]+$/,'.mp3');while(nn in MP.z.m||put.has(nn))nn=nn.replace(/(\.mp3)$/,'_c$1');
-   del.add(m.path);put.set(nn,d);ren[m.path]=nn}
-  for(const nm of Object.keys(MP.z.m)){if(!/\.rels$/.test(nm))continue;const t0=td.decode(await zipRead(MP.z,nm));let t=t0;
-   for(const [o,n] of Object.entries(ren))t=t.replace(new RegExp('(/|")'+esc(o.split('/').pop())+'"','g'),'$1'+n.split('/').pop()+'"');
-   if(t!==t0)put.set(nm,te.encode(t))}
-  let ct=td.decode(await zipRead(MP.z,'[Content_Types].xml'));
-  for(const o of Object.keys(ren))ct=ct.replace(new RegExp('<Override[^>]*PartName="/'+esc(o)+'"[^>]*/>','i'),'');
-  if(!/Extension="mp3"/i.test(ct))ct=ct.replace(/(<Types[^>]*>)/,'$1<Default Extension="mp3" ContentType="audio/mpeg"/>');
-  put.set('[Content_Types].xml',te.encode(ct));
-  const b=zipBuild(MP.z,del,put);busy(false);dl(b,O.d.n+' (mp3).pptx');toast('اتحفظت نسخة جديدة وصوتها mp3')
- }catch(e){fail('فشل التحويل',e)}}
-
 // ----- player (one shared overlay: list / audio dock / video fullscreen) -----
-const MP={z:null,items:[],url:null,el:null,cur:null,tk:0,cv:new Map(),ff:null};
+const MP={z:null,items:[],url:null,el:null,cur:null,tk:0,cv:new Map(),ff:null,autoPromise:null,doc:null};
+// Convert every embedded audio track to MP3 silently in the background as soon as a presentation is opened.
+async function autoConvertPptAudio(){
+ const z=MP.z,doc=MP.doc,todo=[...new Map(MP.items.filter(m=>m.kind==='audio'&&!m.external&&m.path&&m.ext!=='mp3'&&!/^midi?$/.test(m.ext)).map(m=>[m.path,m])).values()];
+ if(!z||!todo.length)return;
+ toast('جاري تجهيز '+todo.length+' ملف صوت في الخلفية…');
+ MP.autoPromise=(async()=>{let done=0,failed=0,cached=0;
+  for(const m of todo){if(MP.z!==z)break;if(MP.cv.has(m.path))continue;
+   try{
+    const src=await zipRead(z,m.path);if(!src)throw new Error('ملف الصوت غير موجود');
+    // Cache by document ID + source checksum/length so reopening a presentation never reconverts unchanged audio.
+    const cacheKey=doc&&doc.id?('ra_mp3_'+String(doc.id).replace(/[^a-z0-9_.-]/gi,'_')+'_'+crc32(src).toString(16)+'_'+src.length):null;
+    let mp3=cacheKey?await getBuf(cacheKey):null;
+    if(mp3){cached++}else{
+     mp3=await toMp3(src,m.ext);if(MP.z!==z)break;
+     if(cacheKey&&doc){await putBuf(cacheKey,mp3);doc.au=Array.isArray(doc.au)?doc.au:[];if(!doc.au.some(a=>a&&a.k===cacheKey))doc.au.push({k:cacheKey});doc.u=Date.now();await dbPut(doc)}
+    }
+    if(MP.z!==z)break;MP.cv.set(m.path,mp3);done++;
+   }catch(e){failed++;console.warn('Background audio conversion failed:',m.file,e)}
+  }
+  if(MP.z===z&&(done||cached))toast('الصوت جاهز للتشغيل: '+done+' جديد، '+cached+' من الذاكرة'+(failed?'، تعذر تحويل '+failed:''));
+ })();
+ return MP.autoPromise;
+}
 const fmtSize=b=>b>1048576?(b/1048576).toFixed(1)+' MB':Math.max(1,Math.round(b/1024))+' KB';
 function mpUI(){let r=$('#mpl');if(r)return r;r=E('div','','<div class="mph"><b class="mpt"></b><button class="mpg" hidden aria-label="القائمة">☰</button><button class="mps" hidden aria-label="حفظ الملف">⬇</button><button class="mx" aria-label="إغلاق">✕</button></div><div class="mpbd"></div>');
  r.id='mpl';r.hidden=true;document.body.append(r);
@@ -597,33 +644,58 @@ function mpList(){const r=mpUI();mpStop();MP.cur=null;r.className='ls';r.hidden=
  for(const m of MP.items){const x=E('button','mpr','<i>'+(m.kind==='video'?'🎬':'🔊')+'</i><span><b></b><small></small></span><em>'+(m.external?'⚠':'▶')+'</em>');
   x.querySelector('b').textContent=m.title;
   const v=document.createElement(m.kind),weak=!m.external&&!v.canPlayType(m.mime);
-  x.querySelector('small').textContent=(m.slide?'شريحة '+m.slide:'مش مربوط بشريحة')+' · '+(m.file||'')+(m.size?' · '+fmtSize(m.size):'')+(m.external?' · ملف خارجي مش جوه العرض':weak?(needConv(m)?' · 🔄 قابل للتحويل لـ mp3':' · صيغة ممكن متشتغلش'):'');
+  x.querySelector('small').textContent=(m.slide?'شريحة '+m.slide:'مش مربوط بشريحة')+' · '+(m.file||'')+(m.size?' · '+fmtSize(m.size):'')+(m.external?' · ملف خارجي مش جوه العرض':m.ext==='wma'?' · ▶ تشغيل WMA':weak?(needConv(m)?' · 🔄 قابل للتحويل لـ mp3':' · صيغة ممكن متشتغلش'):'');
   x.onclick=()=>mpPlay(m);b.append(x)}}
 async function mpPlay(m){
  if(m.external||!m.path)return toast('الملف ده مربوط من برّه العرض ومش موجود جواه'+(m.file?': '+m.file:''));
  const r=mpUI();mpStop();const tk=MP.tk;
- try{let d,mime=m.mime;
+ try{
+  let d,mime=m.mime,original=null;
   if(m.data){d=m.data}
   else if(MP.cv.has(m.path)){d=MP.cv.get(m.path);mime='audio/mpeg'}
-  else{if(m.size>8e6)busy(true,'جاري تجهيز الملف…');d=await zipRead(MP.z,m.path);busy(false);if(tk!==MP.tk)return;
-   if(needConv(m)&&await inkYN('صيغة ‎.'+m.ext+'‎ مش مدعومة على الجهاز. أحوّلها لـ mp3 وأشغّلها؟','حوّل وشغّل','شغّل زي ما هي')){
-    try{busy(true,'جاري التحويل لـ mp3… (أول مرة بتاخد وقت)');d=await toMp3(d,m.ext);MP.cv.set(m.path,d);mime='audio/mpeg'}
-    catch(e){console.warn(e);alert('التحويل فشل: '+(e&&e.message||e))}
-    busy(false)}
-   if(tk!==MP.tk)return}
-  MP.url=URL.createObjectURL(new Blob([d],{type:mime}));MP.cur=m;
+  else{
+   if(m.size>8e6)busy(true,'جاري تجهيز الملف…');
+   d=await zipRead(MP.z,m.path);busy(false);if(tk!==MP.tk)return;
+   // Wait for the automatic background conversion; no manual conversion prompt.
+   if(m.kind==='audio'&&m.ext!=='mp3'&&MP.autoPromise){await MP.autoPromise;if(tk!==MP.tk)return;const converted=MP.cv.get(m.path);if(converted){d=converted;mime='audio/mpeg'}else if(m.ext==='wma')original=d}
+   else if(m.ext==='wma')original=d;
+   if(tk!==MP.tk)return
+  }
+  const makeUrl=bytes=>URL.createObjectURL(new Blob([bytes],{type:mime}));
+  MP.url=makeUrl(d);MP.cur=m;
   r.className=m.kind==='video'?'vd':'au';r.hidden=false;
   r.querySelector('.mpt').textContent=m.title;r.querySelector('.mpg').hidden=MP.items.length<2;r.querySelector('.mps').hidden=false;
   const el=document.createElement(m.kind);el.controls=true;el.playsInline=true;el.preload='auto';el.setAttribute('dir','ltr');
-  el.onerror=()=>{if(MP.el!==el)return;const p=E('p','mpe');p.textContent='الجهاز مش قادر يشغّل صيغة ‎.'+m.ext+'‎ دي. اضغط ⬇ احفظ الملف وشغّله ببرنامج تاني.';r.querySelector('.mpbd').append(p)};
+  let fallbackStarted=false;
+  el.onerror=async()=>{
+   if(MP.el!==el)return;
+   if(m.ext==='wma'&&original&&!fallbackStarted){
+    fallbackStarted=true;
+    try{
+     busy(true,'الجهاز لا يدعم WMA مباشرة… جاري تجهيزه للتشغيل');
+     const wav=await decodeWmaForPlayback(original);
+     if(tk!==MP.tk||MP.el!==el)return;
+     const old=MP.url;MP.url=URL.createObjectURL(new Blob([wav],{type:'audio/wav'}));
+     el.src=MP.url;el.load();if(old)URL.revokeObjectURL(old);
+     const play=el.play();if(play&&play.catch)play.catch(()=>{});
+    }catch(e){
+     console.warn('WMA playback fallback failed',e);
+     if(tk===MP.tk&&MP.el===el){const p=E('p','mpe');p.textContent='تعذر تشغيل ملف WMA تلقائيًا. تأكد من اتصال الإنترنت أو جرّب ملفًا آخر.';r.querySelector('.mpbd').append(p)}
+    }finally{busy(false)}
+    return
+   }
+   const p=E('p','mpe');p.textContent='الجهاز مش قادر يشغّل صيغة ‎.'+m.ext+'‎ دي. اضغط ⬇ احفظ الملف وشغّله ببرنامج تاني.';r.querySelector('.mpbd').append(p)
+  };
   el.src=MP.url;MP.el=el;const b=r.querySelector('.mpbd');b.innerHTML='';b.append(el);const pl=el.play();pl&&pl.catch&&pl.catch(()=>{})
  }catch(e){busy(false);fail('تعذر تشغيل الملف',e)}}
 
 // builds the on-slide play buttons and returns the toolbar items for the media list
 async function pptMediaSetup(w,slideEls){
- MP.z=null;MP.items=[];MP.cv.clear();let sc;
+ MP.z=null;MP.items=[];MP.cv.clear();MP.autoPromise=null;MP.doc=O&&O.d||null;let sc;
  try{sc=await pptMediaScan(O.buf)}catch(e){console.warn('media scan',e);return[]}
  MP.z=sc.z;MP.items=sc.items;if(!sc.items.length)return[];
+ // Start conversion immediately without blocking slide rendering.
+ autoConvertPptAudio().catch(e=>console.warn('Background audio conversion:',e));
  const els=slideEls();let map=null; // slide number -> rendered element
  if(els.length===sc.total)map=i=>els[i-1];
  else{const vis=[];sc.hidden.forEach((h,i)=>{if(!h)vis.push(i+1)});
@@ -635,9 +707,8 @@ async function pptMediaSetup(w,slideEls){
   const b=E('button','mpo','<i>'+(m.kind==='video'?'▶':'🔊')+'</i>');
   b.style.cssText='left:'+cx+'%;top:'+cy+'%;width:max('+r.w/sc.SW*100+'%,40px);height:max('+r.h/sc.SH*100+'%,40px)';
   b.setAttribute('aria-label','تشغيل: '+m.title);b.onclick=e=>{e.stopPropagation();mpPlay(m)};L.append(b)}
- O.cleanup=()=>{mpClose();MP.z=null;MP.items=[];MP.cv.clear()};
- const nc=new Set(sc.items.filter(needConv).map(m=>m.path)).size;
- return['|',{t:'🎬 الوسائط ('+sc.items.length+')',f:mpList},...(nc?[{t:'🔄 حوّل الصوت لـ mp3 ('+nc+')',f:pptConvertAll}]:[])]}
+ O.cleanup=()=>{mpClose();MP.z=null;MP.items=[];MP.cv.clear();MP.autoPromise=null;MP.doc=null};
+ return['|',{t:'🎬 الوسائط ('+sc.items.length+')',f:mpList}]}
 
 async function pptView(){const pv=await need('pp');$('#ofm').className='ofscroll';$('#ofm').innerHTML='<div class="ofw ppt"></div>';const w=$('#ofm').firstChild;
  let ar=16/9;try{const x=await zipText(O.buf,'ppt/presentation.xml'),m=/<p:sldSz[^>]*\bcx="(\d+)"[^>]*\bcy="(\d+)"/.exec(x);if(m)ar=+m[1]/+m[2]}catch(e){}
@@ -645,7 +716,7 @@ async function pptView(){const pv=await need('pp');$('#ofm').className='ofscroll
  const p=pv.init(w,{width:W,height:H});await p.preview(O.buf.slice(0));O.w=w;
  const slides=()=>{let s=[...w.querySelectorAll('.pptx-preview-slide-wrapper')];if(!s.length)s=[...w.querySelectorAll('[class*="slide-wrapper"]')];return s};
  const mbtn=await pptMediaSetup(w,slides);
- setBar([{t:'▶ تشغيل',f:()=>window.pptPlay&&window.pptPlay()},{t:'✏️ تعديل',f:()=>window.pptEdit&&window.pptEdit()},{t:'⬇ PPTX',f:()=>dl(new Blob([O.buf],{type:MIME.ppt}),O.d.n+'.pptx')},'|',...zoomBtns(()=>w),...mbtn])}
+ setBar([{t:'▶ تشغيل',f:()=>window.pptPlay&&window.pptPlay()},{t:'✏️ تعديل',f:()=>window.pptEdit&&window.pptEdit()},{t:'⬇ PPTX',f:()=>dl(new Blob([O.buf],{type:MIME.ppt}),O.d.n+'.pptx')},{t:'🖨 طباعة',f:printOffice},{t:'🔐 نسخة مشفرة',f:encryptedExport},'|',...zoomBtns(()=>w),...mbtn])}
 
 // ---------- منتقي الألوان (ألوان الثيم + قياسية + آخر المستخدمة) ----------
 /*CP-START*/
@@ -682,5 +753,13 @@ function colorBtn(opt){
   p.style.top=(r.bottom+6+h>innerHeight?Math.max(6,r.top-h-6):r.bottom+6)+'px'};
  return {el:b}}
 /*CP-END*/
-window.__of={colorBtn,zipIndex,zipRead,zipBuild,setBar,dl,toast,busy,fail,back,O:()=>O,saveBuf,saveMeta:async x=>{const d=O&&O.d;if(d&&d.own){Object.assign(d,x);await dbPut(d)}},media:{init:async buf=>{const sc=await pptMediaScan(buf);MP.z=sc.z;MP.items=sc.items;return sc},play:mpPlay,list:mpList,add:m=>{MP.items.push(m)},close:()=>{mpClose();MP.z=null;MP.items=[];MP.cv.clear()}}};
+async function createWordFromText(text,name){
+ const dx=await need('dx'),tmp=E('div');
+ const lines=String(text||'').replace(/\r/g,'').split('\n');
+ tmp.innerHTML=lines.map(line=>'<p dir=\"auto\">'+(line.trim()?esc(line):'<br>')+'</p>').join('')||'<p><br></p>';
+ const blob=await htmlToDocx(dx,tmp),buf=await blob.arrayBuffer();
+ const d=await createRec('doc',name||('مسح ضوئي '+new Date().toLocaleDateString('ar-EG')),buf,1);
+ openOffice(d,{edit:1,newDoc:1});return d;
+}
+window.__of={colorBtn,zipIndex,zipRead,zipBuild,setBar,dl,toast,busy,fail,back,O:()=>O,saveBuf,createWordFromText,saveMeta:async x=>{const d=O&&O.d;if(d&&d.own){Object.assign(d,x);await dbPut(d)}},media:{init:async buf=>{const sc=await pptMediaScan(buf);MP.z=sc.z;MP.items=sc.items;return sc},play:mpPlay,list:mpList,add:m=>{MP.items.push(m)},close:()=>{mpClose();MP.z=null;MP.items=[];MP.cv.clear();MP.autoPromise=null;MP.doc=null}}};
 })();

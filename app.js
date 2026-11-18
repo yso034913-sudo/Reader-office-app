@@ -13,30 +13,38 @@ const SZ=()=>{try{return JSON.parse(localStorage.getItem('inksz')||'{}')}catch(e
 SO=()=>{try{return localStorage.getItem('inkso')||'u'}catch(e){return'u'}},
 fmt=n=>n<1048576?Math.max(1,Math.round(n/1024))+' KB':(n/1048576).toFixed(1)+' MB',
 inkSort=(x,y)=>{const o=SO(),z=SZ();return o==='n'?String(x.n).localeCompare(String(y.n),'ar'):o==='sz'?(z[y.id]||0)-(z[x.id]||0):y.u-x.u};
-async function bfill(a){if(S.bf)return;const m=SZ(),todo=a.filter(d=>d.k==='pdf'&&m[d.id]===undefined);if(!todo.length)return;S.bf=1;
- for(const d of todo){try{const b=await tx('f','readonly',s=>s.get(d.id));m[d.id]=b?b.byteLength:0}catch(e){m[d.id]=0}}
- try{localStorage.setItem('inksz',JSON.stringify(m))}catch(e){}S.bf=0;home()}
-const TABK={ppt:['ppt'],doc:['doc'],xls:['xls']},TABM={ppt:'لسه مفيش عروض PowerPoint. افتح ملف .pptx.',doc:'لسه مفيش مستندات Word. افتح ملف .docx أو اعمل مستند جديد.',xls:'لسه مفيش جداول Excel. افتح ملف أو اعمل جدول جديد.'};
+const TABK={ppt:['ppt'],doc:['doc'],xls:['xls'],settings:[]},TABM={ppt:'لسه مفيش عروض PowerPoint. افتح ملف .pptx.',doc:'لسه مفيش مستندات Word. افتح ملف .docx أو اعمل مستند جديد.',xls:'لسه مفيش جداول Excel. افتح ملف أو اعمل جدول جديد.',settings:''};
 let TAB=(()=>{try{const t=localStorage.getItem('inktab');return TABK[t]?t:'ppt'}catch(e){return'ppt'}})();
 window.inkGetTab=()=>TAB;window.inkSetTab=t=>{if(!TABK[t])return;TAB=t;try{localStorage.setItem('inktab',t)}catch(e){}};
 const inTab=d=>TABK[TAB].includes(d.k);
 async function home(){$('#ed').hidden=true;$('#home').hidden=false;const l=$('#list');l.innerHTML='';
  const a=(await tx('d','readonly',s=>s.getAll())).sort(inkSort);
- const ta=a.filter(inTab);lib(l,ta);bfill(a);{const hs=$('#hsub');hs&&(hs.textContent=a.length?a.length+' ملف':'')}const q=$('#ls').value.trim().toLowerCase(),fl=ta.filter(d=>(!q||(d.n+' '+(d.tag||'')).toLowerCase().includes(q))&&(!S.tg||d.tag===S.tg));if(!ta.length)l.innerHTML='<p class="em">'+TABM[TAB]+'</p>';
- fl.forEach(d=>{const r=E('div','it','<i class="ft"></i><div><b></b><small></small></div><button aria-label="حذف"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button><button class="tg" aria-label="وسم"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7" cy="7" r="1.2"/></svg></button><button class="lkb" aria-label="قفل الملف"></button>');{const FT={pdf:'PDF',ppt:'PPT',doc:'DOC',xls:'XLS'},f=r.querySelector('.ft');f.textContent=FT[d.k]||'✎';f.classList.add(FT[d.k]?d.k:'nt')}
-  r.querySelector('b').textContent=d.n;r.querySelector('small').textContent=(window.inkKind?inkKind(d):d.k==='pdf'?'PDF':'ملاحظة')+' · '+new Date(d.u).toLocaleDateString('ar-EG')+(d.k==='pdf'&&SZ()[d.id]?' · '+fmt(SZ()[d.id]):'')+(d.tag?' · 📁'+d.tag:'');
-  r.querySelector('.ft').onclick=r.querySelector('div').onclick=()=>openDoc(d.id);r.querySelector('.tg').onclick=async()=>{const t=await inkAsk('اسم المجلد/الوسم (فاضي = بدون):',d.tag||'');if(t!==null){d.tag=t.trim();await dbPut(d);home()}};
+ const ta=a.filter(inTab);lib(l,ta);{const hs=$('#hsub'),visibleCount=a.filter(inTab).length;hs&&(hs.textContent=visibleCount?visibleCount+' ملف':'')}const q=$('#ls').value.trim().toLowerCase(),fl=ta.filter(d=>(!q||(d.n+' '+(d.tag||'')).toLowerCase().includes(q))&&(!S.tg||d.tag===S.tg));if(!ta.length)l.innerHTML='<p class="em">'+TABM[TAB]+'</p>';
+ fl.forEach(d=>{const r=E('div','it','<i class="ft"></i><div><b></b><small></small></div><button class="rn" aria-label="إعادة تسمية">✏️</button><button aria-label="حذف"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button><button class="tg" aria-label="وسم"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7" cy="7" r="1.2"/></svg></button><button class="lkb" aria-label="قفل الملف"></button>');{const FT={ppt:'PPT',doc:'DOC',xls:'XLS'},f=r.querySelector('.ft');f.textContent=FT[d.k]||'✎';f.classList.add(FT[d.k]?d.k:'nt')}
+  r.querySelector('b').textContent=d.n;r.querySelector('small').textContent=(window.inkKind?inkKind(d):'ملاحظة')+' · '+new Date(d.u).toLocaleDateString('ar-EG')+(d.tag?' · 📁'+d.tag:'');
+  r.querySelector('.ft').onclick=r.querySelector('div').onclick=()=>openDoc(d.id);r.querySelector('.rn').onclick=async()=>{const n=await inkAsk('اسم الملف الجديد:',d.n);if(n&&n.trim()){d.n=n.trim().slice(0,120);d.u=Date.now();await dbPut(d);home()}};r.querySelector('.tg').onclick=async()=>{const t=await inkAsk('اسم المجلد/الوسم (فاضي = بدون):',d.tag||'');if(t!==null){d.tag=t.trim();await dbPut(d);home()}};
   {const lb=r.querySelector('.lkb');lb.textContent=d.lk?'🔒':'🔓';lb.classList.toggle('on',!!d.lk);lb.onclick=()=>window.inkLockToggle&&inkLockToggle(d)}
-  r.querySelector('button').onclick=async()=>{if(d.lk&&window.inkVerify&&!await inkVerify({title:'الملف مقفول 🔒',sub:d.n}))return;if(await inkConfirm('حذف الملف؟')){try{for(const a of d.au||[])await tx('f','readwrite',s=>s.delete(a.k));await tx('d','readwrite',s=>s.delete(d.id));await tx('f','readwrite',s=>s.delete(d.id))}catch(e){alert('فشل الحذف: '+(e&&e.message||e))}home()}};l.append(r)})}
+  r.querySelector('button[aria-label="حذف"]').onclick=async()=>{if(d.lk&&window.inkVerify&&!await inkVerify({title:'الملف مقفول 🔒',sub:d.n}))return;if((()=>{try{return JSON.parse(localStorage.getItem('readerall.settings.v1')||'{}').deleteConfirm!==false}catch(e){return true}})()&&!await inkConfirm('حذف الملف؟'))return;{try{for(const a of d.au||[])await tx('f','readwrite',s=>s.delete(a.k));await tx('d','readwrite',s=>s.delete(d.id));await tx('f','readwrite',s=>s.delete(d.id))}catch(e){alert('فشل الحذف: '+(e&&e.message||e))}home()}};l.append(r)})}
+// ---------- settings: unified file manager + storage information ----------
+window.inkListAllFiles=async()=>{
+ const rows=await tx('d','readonly',s=>s.getAll());
+ return rows.sort((a,b)=>(b.u||0)-(a.u||0)).map(d=>({id:d.id,n:d.n||'بدون اسم',k:d.k||'other',u:d.u||0,tag:d.tag||'',lk:!!d.lk}));
+};
+window.inkStorageStats=async()=>{
+ const rows=await tx('d','readonly',s=>s.getAll());let bytes=0;
+ for(const d of rows){try{bytes+=new Blob([JSON.stringify({...d,au:undefined})]).size}catch(e){};for(const a of d.au||[]){try{const v=await tx('f','readonly',s=>s.get(a.k));if(v)bytes+=v.byteLength||v.size||0}catch(e){}};try{const v=await tx('f','readonly',s=>s.get(d.id));if(v)bytes+=v.byteLength||v.size||0}catch(e){}}
+ let estimate=null;try{if(navigator.storage&&navigator.storage.estimate)estimate=await navigator.storage.estimate()}catch(e){}
+ return {count:rows.length,bytes,quota:estimate&&estimate.quota,usage:estimate&&estimate.usage};
+};
+window.inkOpenStoredFile=async id=>openDoc(id);
+window.inkRenameStoredFile=async(id,name)=>{const d=await tx('d','readonly',s=>s.get(id));if(!d)return false;d.n=name;d.u=Date.now();await dbPut(d);return true};
+window.inkDeleteStoredFile=async id=>{const d=await tx('d','readonly',s=>s.get(id));if(!d)return false;for(const a of d.au||[])await tx('f','readwrite',s=>s.delete(a.k));await tx('d','readwrite',s=>s.delete(id));await tx('f','readwrite',s=>s.delete(id));return true};
+
 // ---------- editor ----------
-async function openDoc(id){const my=S.ot=(S.ot||0)+1;const d=await tx('d','readonly',s=>s.get(id));if(my!==S.ot)return;if(!d)return home();S.d=d;S.pdf=null;S.und=[];S.red=[];S.tc=[];S.sr=[];S.si=-1;S.lq='';clearHl();$('#ed').classList.toggle('nt',!!d.nt);$('#sb').hidden=true;$('#cnt').textContent='';$('#si').value='';$('#ed').classList.remove('fs');
- $('#home').hidden=true;$('#ed').hidden=false;$('#ttl').textContent=d.n;$('#ap').hidden=d.k!=='note';$('#sq').hidden=d.k!=='pdf';
+async function openDoc(id){const my=S.ot=(S.ot||0)+1;const d=await tx('d','readonly',s=>s.get(id));if(my!==S.ot)return;if(!d)return home();if(d.k==='pdf'){alert('قارئ PDF غير متاح في هذا التطبيق. يمكنك استخدام أدوات تحويل المستندات إلى PDF.');return home()}S.d=d;S.pdf=null;S.und=[];S.red=[];S.tc=[];S.sr=[];S.si=-1;S.lq='';clearHl();$('#ed').classList.toggle('nt',!!d.nt);$('#sb').hidden=true;$('#cnt').textContent='';$('#si').value='';$('#ed').classList.remove('fs');
+ $('#home').hidden=true;$('#ed').hidden=false;$('#ttl').textContent=d.n;$('#ap').hidden=d.k!=='note';if($('#sq'))$('#sq').hidden=true;
  let n=d.np;
- if(d.k==='pdf'){const data=await tx('f','readonly',s=>s.get(id));if(my!==S.ot)return;if(!data){alert('ملف الـPDF مش موجود (ممكن يكون اتمسح).');return home()}
-  let cn=0;const lt=pdfjsLib.getDocument({data});lt.onPassword=async(cb,why)=>{const p=await inkAsk(why===2?'كلمة السر غلط. جرّب تاني:':'كلمة سر الملف:');if(!p){cn=1;try{lt.destroy()}catch(e){}return}cb(p)};
-  let pf;try{pf=await lt.promise}catch(e){if(!cn)alert('تعذر فتح الملف');return my===S.ot?home():undefined}
-  if(my!==S.ot){try{pf.destroy()}catch(e){}return}S.pdf=pf;n=pf.numPages}
- const p1=S.pdf?(await S.pdf.getPage(1)).getViewport({scale:1}):{width:W,height:H};if(my!==S.ot)return;
+ const p1={width:W,height:H};if(my!==S.ot)return;
  S.fit=Math.min(2,($('#sc').clientWidth-8)/p1.width);S.z=Math.max(S.fit*.5,Math.min(S.fit*3,S.fit*(d.zr||1)));
  const g=$('#pgs');g.innerHTML='';S.pg=[];S.io&&S.io.disconnect();
  S.io=new IntersectionObserver(es=>es.forEach(e=>{const el=e.target;el.vis=e.isIntersecting;if(e.isIntersecting)rp(el.i);else gcSoon()}),{root:$('#sc'),rootMargin:'300px 0px'});
@@ -45,13 +53,11 @@ function rst(d){const el=S.pg[d.pi||0],sc=$('#sc');if(el&&(d.pi||d.po)){const x=
 function addPg(i,dim){const el=E('div','pg');el.i=i;el.dim=dim;el.bg=E('canvas');el.hc=E('canvas','hlc');el.ink=E('canvas','ink');el.append(el.bg,el.hc,el.ink);
  el.style.width=dim[0]*S.z+'px';el.style.height=dim[1]*S.z+'px';bind(el);S.pg[i]=el;$('#pgs').append(el);S.io.observe(el)}
 async function bgDraw(i,c,k,own){const el=S.pg[i];c.fillStyle='#fff';c.fillRect(0,0,el.dim[0]*k,el.dim[1]*k);
- if(S.pdf){const p=await S.pdf.getPage(i+1),rt=p.render({canvasContext:c,viewport:p.getViewport({scale:k})});if(own)el.rt=rt;try{await rt.promise}finally{if(own&&el.rt===rt)el.rt=null}return}
  const t=S.d.tp,s=28*k;c.strokeStyle=c.fillStyle='#cbd5e1';c.lineWidth=Math.max(1,k*.6);
  if(t==='lines')for(let y=s*1.5;y<H*k;y+=s){c.beginPath();c.moveTo(0,y);c.lineTo(W*k,y);c.stroke()}
  else if(t==='grid'){for(let y=s;y<H*k;y+=s){c.beginPath();c.moveTo(0,y);c.lineTo(W*k,y);c.stroke()}for(let x=s;x<W*k;x+=s){c.beginPath();c.moveTo(x,0);c.lineTo(x,H*k);c.stroke()}}
  else if(t==='dots')for(let y=s;y<H*k;y+=s)for(let x=s;x<W*k;x+=s)c.fillRect(x-k*.8,y-k*.8,k*1.6,k*1.6)}
 async function rp0(i){const el=S.pg[i];if(!el||el.r===S.z)return;el.r=S.z;const t=el.tk=(el.tk||0)+1;
- if(S.pdf){const v=(await S.pdf.getPage(i+1)).getViewport({scale:1});el.dim=[v.width,v.height]}
  const w=el.dim[0]*S.z,h=el.dim[1]*S.z;let d=Math.min(devicePixelRatio||1,2)*(S.df||1);d=Math.max(.8,Math.min(d,Math.sqrt(3e6/(w*h))));const oc=E('canvas');oc.width=w*d;oc.height=h*d;
  const t0=performance.now();try{await bgDraw(i,oc.getContext('2d'),S.z*d,1)}catch(e){if(t!==el.tk||(e&&e.name==='RenderingCancelledException')){oc.width=oc.height=0;return}throw e}
  if(t!==el.tk){oc.width=oc.height=0;return}if(performance.now()-t0>700)S.df=Math.max(.6,(S.df||1)*.85);
@@ -161,56 +167,21 @@ let ur=0;$('#sc').onscroll=()=>{ur||(ur=requestAnimationFrame(()=>{ur=0;up()}))}
 $('#pn').onclick=()=>{inkAsk('رقم الصفحة:').then(v=>{const n=+v;if(n>0&&n<=S.pg.length)S.pg[n-1].scrollIntoView()})};
 $('#ttl').onclick=()=>{inkAsk('الاسم:',S.d.n).then(n=>{if(n){S.d.n=n;$('#ttl').textContent=n;save()}})};
 $('#ap').onclick=()=>{const i=S.pg.length;S.d.np++;addPg(i,[W,H]);rp(i);S.pg[i].scrollIntoView();save()};
-$('#bk').onclick=async()=>{S.ot=(S.ot||0)+1;$('#ed').classList.remove('fs');document.fullscreenElement&&document.exitFullscreen();clearHl();await flush();try{S.pdf&&S.pdf.destroy&&S.pdf.destroy()}catch(e){}S.d=null;home()};
+$('#bk').onclick=async()=>{S.ot=(S.ot||0)+1;$('#ed').classList.remove('fs');document.fullscreenElement&&document.exitFullscreen();clearHl();await flush();S.pdf=null;S.d=null;home()};
 // ---------- export ----------
 async function exImg(b){const D=await PDFLib.PDFDocument.create(),n=S.pg.length;
- for(let i=0;i<n;i++){const el=S.pg[i];if(S.pdf){const v=(await S.pdf.getPage(i+1)).getViewport({scale:1});el.dim=[v.width,v.height]}
+ for(let i=0;i<n;i++){const el=S.pg[i];
   const k=2,c=E('canvas');c.width=el.dim[0]*k;c.height=el.dim[1]*k;const x=c.getContext('2d');await bgDraw(i,x,k);(S.d.s[i]||[]).forEach(o=>ds(x,o,k));
   const im=await D.embedJpg(await(await fetch(c.toDataURL('image/jpeg',.88))).arrayBuffer());
   D.addPage([el.dim[0],el.dim[1]]).drawImage(im,{x:0,y:0,width:el.dim[0],height:el.dim[1]});b.textContent=(i+1)+'/'+n}
  return D}
-async function exTxt(b){const data=await tx('f','readonly',s=>s.get(S.d.id));const D=await PDFLib.PDFDocument.load(data),P=D.getPages(),n=S.pg.length,k=2;
- for(let i=0;i<n;i++){const l=S.d.s[i]||[];b.textContent=(i+1)+'/'+n;if(!l.length)continue;
-  const v=(await S.pdf.getPage(i+1)).getViewport({scale:1}),w=v.width,h=v.height,c=E('canvas');c.width=w*k;c.height=h*k;const x=c.getContext('2d');l.forEach(o=>ds(x,o,k));
-  const im=await D.embedPng(await(await fetch(c.toDataURL('image/png'))).arrayBuffer()),p=P[i],cb=p.getCropBox(),r=((p.getRotation().angle%360)+360)%360;
-  let X=cb.x,Y=cb.y;if(r===90)X+=cb.width;else if(r===180){X+=cb.width;Y+=cb.height}else if(r===270)Y+=cb.height;
-  p.drawImage(im,{x:X,y:Y,width:w,height:h,rotate:PDFLib.degrees(r)})}
- return D}
-$('#ex').onclick=async()=>{const b=$('#ex');b.disabled=true;let img=0;
- try{let D;if(S.pdf){try{D=await exTxt(b)}catch(e){console.warn(e);img=1;D=await exImg(b)}}else{D=await exImg(b)}
+$('#ex').onclick=async()=>{const b=$('#ex');b.disabled=true;
+ try{const D=await exImg(b)
   const blob=new Blob([await D.save()],{type:'application/pdf'}),f=new File([blob],S.d.n+'.pdf',{type:'application/pdf'});
   if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]}).catch(()=>{});
   else{const a=E('a'),u=URL.createObjectURL(blob);a.href=u;a.download=f.name;a.click();setTimeout(()=>URL.revokeObjectURL(u),60000)}
-  if(img)alert('الملف ده اتصدّر كصور (النص مش قابل للتحديد) لأنه محمي أو غير مدعوم.');
  }catch(e){alert('فشل التصدير: '+e.message)}
  b.textContent='⬇ PDF';b.disabled=false};
-// ---------- search ----------
-const NM=s=>{let r='';for(const c0 of s)for(const c of c0.normalize('NFKC').toLowerCase()){if(/[\u064B-\u065F\u0670\u0640]/.test(c))continue;
- const d='٠١٢٣٤٥٦٧٨٩'.indexOf(c);r+='أإآٱ'.includes(c)?'ا':c==='ى'?'ي':c==='ة'?'ه':d>=0?String(d):/\s/.test(c)?' ':c}return r};
-async function ptxt(i){if(S.tc[i])return S.tc[i];const p=await S.pdf.getPage(i+1),tc=await p.getTextContent(),v=p.getViewport({scale:1}),T={s:'',mi:[],mo:[],it:[],w:v.width,h:v.height};
- tc.items.forEach(t=>{if(typeof t.str!=='string')return;const j=T.it.length,tr=pdfjsLib.Util.transform(v.transform,t.transform),
-  lx=Math.hypot(tr[0],tr[1])||1,ly=Math.hypot(tr[2],tr[3])||1;
-  T.it.push({str:t.str,x:tr[4],y:tr[5],dx:tr[0]/lx,dy:tr[1]/lx,ux:tr[2]/ly,uy:tr[3]/ly,w:t.width,h:t.height||ly,n:t.str.length,ar:/[\u0590-\u08FF\uFB1D-\uFEFF]/.test(t.str)});
-  let o=0;for(const c0 of t.str){const n=NM(c0);for(const c of n){if(c===' '&&T.s.endsWith(' '))continue;T.s+=c;T.mi.push(j);T.mo.push(o)}o+=c0.length}
-  if(t.hasEOL&&!T.s.endsWith(' ')){T.s+=' ';T.mi.push(-1);T.mo.push(0)}});
- return S.tc[i]=T}
-function rects(T,a,b){const g={};for(let k=a;k<b;k++){const j=T.mi[k];if(j<0)continue;const o=T.mo[k];g[j]=g[j]?[Math.min(g[j][0],o),Math.max(g[j][1],o+1)]:[o,o+1]}
- return Object.keys(g).map(j=>{const t=T.it[j];let f0=g[j][0]/t.n,f1=g[j][1]/t.n;if(t.ar){f0=0;f1=1}
-  const p=[[f0,-.2],[f1,-.2],[f0,1],[f1,1]].map(([u,v])=>[t.x+t.dx*t.w*u+t.ux*t.h*v,t.y+t.dy*t.w*u+t.uy*t.h*v]),xs=p.map(q=>q[0]),ys=p.map(q=>q[1]),x=Math.min(...xs),y=Math.min(...ys);
-  return{x,y,w:Math.max(...xs)-x,h:Math.max(...ys)-y,W:T.w,H:T.h}})}
-function clearHl(){document.querySelectorAll('.sh').forEach(e=>e.remove())}
-async function find(q){const tok=S.stk=(S.stk||0)+1;clearHl();S.sr=[];S.si=-1;S.lq=q;const nq=NM(q.trim()).replace(/ +/g,' '),cn=$('#cnt');
- if(!nq){cn.textContent='';return}let any=0;
- for(let i=0;i<S.pg.length;i++){if(tok!==S.stk)return;cn.textContent='…'+(i+1)+'/'+S.pg.length;const T=await ptxt(i);if(T.s.trim())any=1;
-  let k=0;while((k=T.s.indexOf(nq,k))>=0){const rs=rects(T,k,k+nq.length),els=rs.map(r=>{const d=E('div','sh');d.style.cssText='left:'+r.x/r.W*100+'%;top:'+r.y/r.H*100+'%;width:'+r.w/r.W*100+'%;height:'+r.h/r.H*100+'%';S.pg[i].append(d);return d});S.sr.push({i,els,k});k+=nq.length}}
- if(!S.sr.length){cn.textContent=any?'0':'مفيش نص';return}go(0)}
-function go(n){const L=S.sr.length;if(!L)return;S.sr.forEach(r=>r.els.forEach(e=>e.classList.remove('cur')));S.si=(n+L)%L;const r=S.sr[S.si];r.els.forEach(e=>e.classList.add('cur'));
- $('#cnt').textContent=(S.si+1)+'/'+L;r.els[0].scrollIntoView({block:'center',inline:'center'})}
-$('#sq').onclick=()=>{const s=$('#sb');s.hidden=!s.hidden;if(s.hidden){clearHl();S.sr=[];S.lq='';$('#cnt').textContent=''}else $('#si').focus()};
-$('#sx').onclick=()=>{$('#sb').hidden=true;clearHl();S.sr=[];S.lq='';S.stk++;$('#cnt').textContent=''};
-$('#si').onkeydown=e=>{if(e.key!=='Enter')return;e.preventDefault();const v=e.target.value;if(v!==S.lq)find(v);else go(S.si+(e.shiftKey?-1:1))};
-$('#sn').onclick=()=>{const v=$('#si').value;if(v!==S.lq)find(v);else go(S.si+1)};
-$('#sp').onclick=()=>{const v=$('#si').value;if(v!==S.lq)find(v);else go(S.si-1)};
 // ---------- tap to hide/show bars (hand tool) ----------
 let tp=null;const fsT=()=>{const on=$('#ed').classList.toggle('fs'),d=document;try{if(on&&!d.fullscreenElement)0;else if(!on&&d.fullscreenElement)d.exitFullscreen()}catch(e){}};
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)$('#ed').classList.remove('fs')});
@@ -223,23 +194,7 @@ $('#sc').addEventListener('pointercancel',()=>tp=null);
 if('serviceWorker'in navigator&&!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()))navigator.serviceWorker.register('sw.js').catch(()=>{});
 home();
 
-// ---------- text layer (select / copy / highlight) ----------
-const mc=document.createElement('canvas').getContext('2d');
-async function buildTl(i){const el=S.pg[i];if(!NV()||!S.pdf||!el||el.tl||el.tb)return;el.tb=1;await new Promise(r=>setTimeout(r,200));el.tb=0;if(!el.r||el.tl)return;const T=await ptxt(i);if(el.tl||!el.r)return;
- const d=E('div','tl'),fr=document.createDocumentFragment();d.style.cssText='width:'+T.w+'px;height:'+T.h+'px;transform:scale('+S.z+')';
- let ci=0;for(const t of T.it){if(!t.str.trim())continue;mc.font=t.h+'px sans-serif';const w=mc.measureText(t.str).width,x=w&&t.w?t.w/w:1,s=E('span');s.textContent=t.str;
-  s.style.cssText='left:'+t.x+'px;top:'+(t.y-t.h*.82)+'px;font-size:'+t.h+'px;transform-origin:0 82%;transform:rotate('+Math.atan2(t.dy,t.dx)+'rad) scaleX('+(isFinite(x)&&x>0?x:1)+')';fr.append(s);if(++ci%400===0){await new Promise(r=>requestAnimationFrame(r));if(!el.r||el.tl)return}}
- d.append(fr);el.insertBefore(d,el.ink);el.tl=d}
-const hs=()=>{const s=getSelection();return NV()&&s&&!s.isCollapsed&&$('#pgs').contains(s.anchorNode)?s:null};
-document.addEventListener('selectionchange',()=>{window.updSA&&updSA()});
-$('#sa').addEventListener('pointerdown',e=>e.preventDefault());
-// تظليل النص المحدد بلون معيّن (بيتنادى من شريط الألوان)
-function mkHl(c){const s=hs();if(!s)return;const by={};
- for(const r of s.getRangeAt(0).getClientRects()){if(r.width<2||r.height>60)continue;const cx=r.left+r.width/2,cy=r.top+r.height/2;
-  const i=S.pg.findIndex(el=>{const q=el.getBoundingClientRect();return cx>=q.left&&cx<=q.right&&cy>=q.top&&cy<=q.bottom});if(i<0)continue;
-  const q=S.pg[i].getBoundingClientRect(),u=[(r.left-q.left)/S.z,(r.top-q.top)/S.z,r.width/S.z,r.height/S.z];
-  if(!(by[i]=by[i]||[]).some(v=>Math.abs(v[0]-u[0])<1&&Math.abs(v[1]-u[1])<1&&Math.abs(v[2]-u[2])<2))by[i].push(u)}
- const tt=s.toString();let f1=1;for(const i in by){add(+i,{t:'hr',c,rs:by[i],tx:f1?tt:''});f1=0}s.removeAllRanges()}
+// Text extraction from PDF is intentionally not part of Reader All.
 // ---------- toolbar position ----------
 const lg=()=>{try{return localStorage.getItem('inkpos')}catch(e){}};
 function pos(){const L=lg()==='L';$('#ed').classList.toggle('L',L);$('#tp').textContent=L?'⬇':'⬅'}
@@ -279,31 +234,77 @@ function plR(){const b=$('#plb');b.innerHTML='';b.classList.toggle('l',tab==='hl
 $('#pb').onclick=()=>{$('#pl').hidden=false;plR()};$('#plx').onclick=()=>$('#pl').hidden=true;
 document.querySelectorAll('#plh [data-p]').forEach(x=>x.onclick=()=>{tab=x.dataset.p;plR()});
 $('#bm').onclick=()=>tgl(S.cp||0);
-// ---------- backup ----------
+// ---------- complete backup / restore (Office files, notes, attachments and app preferences) ----------
 async function svF(blob,name){const f=new File([blob],name);if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]}).catch(()=>{});else{const a=E('a'),u=URL.createObjectURL(blob);a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),60000)}}
-$('#bkx').onclick=async()=>{try{window.inkBusy&&inkBusy(true,'جاري تجهيز النسخة الاحتياطية…');const ds=await tx('d','readonly',s=>s.getAll()),parts=[],hd=[];
- for(const d of ds){const e={d,n:0,au:[]};
-  if(d.k==='pdf'){const f=await tx('f','readonly',s=>s.get(d.id));if(f){e.n=f.byteLength;parts.push(new Blob([f]))}}
-  for(const a of d.au||[]){const f=await tx('f','readonly',s=>s.get(a.k));if(f){e.au.push({k:a.k,n:f.byteLength});parts.push(new Blob([f]))}}
-  hd.push(e)}
- const h=new TextEncoder().encode(JSON.stringify(hd));window.inkBusy&&inkBusy(false);
- await svF(new Blob([new Uint32Array([h.length]),h,...parts]),'inkpad-backup-'+new Date().toISOString().slice(0,10)+'.inkbak')}catch(e){window.inkBusy&&inkBusy(false);alert('فشل النسخ: '+(e&&e.message||e))}};
+const BACKUP_LOCAL_PREFIXES=['ink','readerall.'];
+function backupLocalSettings(){const out={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&BACKUP_LOCAL_PREFIXES.some(p=>k.startsWith(p)))out[k]=localStorage.getItem(k)}}catch(e){}return out}
+const backupKeyOK=k=>typeof k==='string'&&k.length>0&&k.length<=240&&!/[\u0000-\u001f]/.test(k);
+async function readBackupFile(key){return await tx('f','readonly',s=>s.get(key))}
+$('#bkx').onclick=async()=>{try{
+ window.inkBusy&&inkBusy(true,'جاري تجهيز نسخة كاملة من ملفاتك…');
+ const ds=await tx('d','readonly',s=>s.getAll()),records=[],parts=[];
+ for(const original of ds){if(!original||original.k==='pdf')continue;
+  const d=JSON.parse(JSON.stringify(original)),files=[],seen=new Set();
+  const addFile=async key=>{if(!backupKeyOK(key)||seen.has(key))return;const value=await readBackupFile(key);if(value==null)return;
+   const blob=value instanceof Blob?value:new Blob([value]);files.push({k:key,n:blob.size});parts.push(blob);seen.add(key)};
+  // The primary Office document is stored under its document ID in object store "f".
+  await addFile(d.id);
+  if(['ppt','doc','xls'].includes(d.k)&&!seen.has(d.id))throw new Error('الملف الأساسي غير موجود: '+(d.n||d.id));
+  // Additional binary attachments (including cached MP3 audio) are referenced by d.au.
+  for(const a of Array.isArray(d.au)?d.au:[])if(a&&backupKeyOK(a.k))await addFile(a.k);
+  records.push({d,files});
+ }
+ const payload={format:'ReaderAllBackup',version:2,createdAt:new Date().toISOString(),records,local:backupLocalSettings()};
+ const header=new TextEncoder().encode(JSON.stringify(payload));if(header.length>64*1048576)throw new Error('بيانات النسخة كبيرة جدًا');
+ const prefix=new ArrayBuffer(4);new DataView(prefix).setUint32(0,header.length,true);
+ window.inkBusy&&inkBusy(false);
+ await svF(new Blob([prefix,header,...parts],{type:'application/octet-stream'}),'readerall-backup-'+new Date().toISOString().slice(0,10)+'.inkbak');
+ }catch(e){window.inkBusy&&inkBusy(false);alert('فشل النسخ الاحتياطي: '+(e&&e.message||e))}};
 $('#bki').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
- try{if(f.size<6)throw 0;const len=new Uint32Array(await f.slice(0,4).arrayBuffer())[0];if(!(len>1&&len<=f.size-4&&len<64*1048576))throw 0;
-  let hd;try{hd=JSON.parse(new TextDecoder().decode(await f.slice(4,4+len).arrayBuffer()))}catch(_){throw 0}
-  if(!Array.isArray(hd))throw 0;
-  const OK=/^[a-z0-9_.-]{1,64}$/i;let need=4+len;
-  for(const x of hd){const d=x&&x.d;if(!d||typeof d.id!=='string'||!OK.test(d.id)||(d.k!=='pdf'&&d.k!=='note')||typeof d.n!=='string')throw 0;
-   if(!Number.isInteger(x.n)||x.n<0)throw 0;need+=x.n;
-   for(const a of x.au||[]){if(!a||typeof a.k!=='string'||!OK.test(a.k)||!Number.isInteger(a.n)||a.n<0)throw 0;need+=a.n}}
-  if(need>f.size)throw 0;
-  window.inkBusy&&inkBusy(true,'جاري الاسترجاع…');let o=4+len;
-  for(const x of hd){const d=x.d;if(!d.s||typeof d.s!=='object')d.s={};
-   await tx('d','readwrite',s=>s.put(d));
-   if(x.n){const b=await f.slice(o,o+x.n).arrayBuffer();await tx('f','readwrite',s=>s.put(b,d.id));o+=x.n}
-   for(const a of x.au||[]){const b=await f.slice(o,o+a.n).arrayBuffer();await tx('f','readwrite',s=>s.put(b,a.k));o+=a.n}}
-  window.inkBusy&&inkBusy(false);alert('تم استرجاع '+hd.length+' ملف');home()}
- catch(x){window.inkBusy&&inkBusy(false);alert(x===0?'ملف النسخة غير صالح أو تالف':'فشل الاسترجاع: '+(x&&x.message||x))}};
+ try{
+  if(f.size<6)throw new Error('ملف النسخة فارغ أو تالف');
+  const first=await f.slice(0,4).arrayBuffer(),len=new DataView(first).getUint32(0,true);
+  if(!(len>1&&len<=f.size-4&&len<64*1048576))throw new Error('حجم بيانات النسخة غير صالح');
+  let parsed;try{parsed=JSON.parse(new TextDecoder().decode(await f.slice(4,4+len).arrayBuffer()))}catch(_){throw new Error('تعذر قراءة فهرس النسخة')}
+  let records=[],local={},legacy=false;
+  if(Array.isArray(parsed)){
+   // Backward compatibility with the older notes-only .inkbak format.
+   legacy=true;records=parsed.map(x=>({d:x&&x.d,files:[...(x&&x.n?[{k:x.d&&x.d.id,n:x.n}]:[]),...((x&&x.au)||[])]}));
+  }else if(parsed&&parsed.format==='ReaderAllBackup'&&parsed.version===2&&Array.isArray(parsed.records)){
+   records=parsed.records;local=parsed.local&&typeof parsed.local==='object'?parsed.local:{};
+  }else throw new Error('صيغة النسخة الاحتياطية غير معروفة');
+  let offset=4+len;const prepared=[],allKeys=new Set();
+  for(const rec of records){const d=rec&&rec.d;if(!d||typeof d.id!=='string'||!backupKeyOK(d.id)||typeof d.n!=='string'||typeof d.k!=='string')throw new Error('بيانات أحد الملفات غير صالحة');
+   if(d.k==='pdf')continue; // Reader All intentionally does not restore PDF documents.
+   if(!['note','ppt','doc','xls'].includes(d.k))throw new Error('نوع ملف غير مدعوم داخل النسخة: '+d.k);
+   const files=Array.isArray(rec.files)?rec.files:[];let clean=JSON.parse(JSON.stringify(d));clean.au=[];const blobs=[];
+   for(const item of files){if(!item||!backupKeyOK(item.k)||!Number.isSafeInteger(item.n)||item.n<0)throw new Error('بيانات مرفق غير صالحة');
+    if(allKeys.has(item.k))throw new Error('مفتاح ملف مكرر داخل النسخة');allKeys.add(item.k);
+    if(offset+item.n>f.size)throw new Error('بيانات الملفات ناقصة أو تالفة');
+    const blob=f.slice(offset,offset+item.n);offset+=item.n;blobs.push({k:item.k,data:await blob.arrayBuffer()});
+    if(item.k!==clean.id)clean.au.push({k:item.k});
+   }
+   // Office records must include their primary binary payload.
+   if(['ppt','doc','xls'].includes(clean.k)&&!blobs.some(x=>x.k===clean.id))throw new Error('ملف Office الأساسي غير موجود في النسخة: '+clean.n);
+   prepared.push({d:clean,blobs});
+  }
+  if(offset!==f.size)throw new Error('حجم النسخة لا يطابق البيانات المسجلة');
+  window.inkBusy&&inkBusy(true,'جاري استعادة الملفات والإعدادات…');
+  const existing=await tx('d','readonly',s=>s.getAll()),replaced=new Set(prepared.map(x=>x.d.id)),keepKeys=new Set();
+  for(const rec of prepared)for(const item of rec.blobs)keepKeys.add(item.k);
+  for(const old of existing)if(!replaced.has(old.id)){keepKeys.add(old.id);for(const a of old.au||[])if(a&&a.k)keepKeys.add(a.k)}
+  const staleKeys=new Set();for(const old of existing)if(replaced.has(old.id)){staleKeys.add(old.id);for(const a of old.au||[])if(a&&a.k)staleKeys.add(a.k)}
+  const db=await DB;
+  await new Promise((resolve,reject)=>{const t=db.transaction(['d','f'],'readwrite'),ds=t.objectStore('d'),fs=t.objectStore('f');
+   for(const key of staleKeys)if(!keepKeys.has(key))fs.delete(key);
+   for(const rec of prepared){ds.put(rec.d);for(const item of rec.blobs)fs.put(item.data,item.k)}
+   t.oncomplete=resolve;t.onerror=()=>reject(t.error||new Error('تعذرت كتابة البيانات'));t.onabort=()=>reject(t.error||new Error('تم إلغاء الاستعادة'));
+  });
+  // Restore only Reader All's own preferences and settings; do not touch unrelated site data.
+  if(!legacy){for(const [k,v] of Object.entries(local)){if(typeof k==='string'&&BACKUP_LOCAL_PREFIXES.some(p=>k.startsWith(p))&&typeof v==='string'){try{localStorage.setItem(k,v)}catch(_){}}}}
+  window.inkBusy&&inkBusy(false);alert('تم استرجاع '+prepared.length+' ملف'+(legacy?' من نسخة قديمة':' مع المرفقات والإعدادات'));home();
+ }catch(err){window.inkBusy&&inkBusy(false);alert('تعذر استرجاع النسخة: '+(err&&err.message||err))}
+};
 
 // ---------- snap, images, menu, tools ----------
 function snap(o){const a=o.p[0],b=o.p[o.p.length-1],xs=o.p.map(q=>q[0]),ys=o.p.map(q=>q[1]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
@@ -335,20 +336,5 @@ let tmI=0;$('#m-tm').onclick=()=>{$('#mm').hidden=true;const t=$('#tmr');if(tmI)
  tmI=setInterval(()=>{const s=Math.max(0,Math.round((end-Date.now())/1000));t.textContent='⏱ '+String(s/60|0).padStart(2,'0')+':'+String(s%60).padStart(2,'0');if(!s){clearInterval(tmI);tmI=0;t.hidden=true;navigator.vibrate&&navigator.vibrate([300,100,300]);alert('خلصت 25 دقيقة. خد استراحة 5 دقايق')}},500)};
 $('#tmr').onclick=()=>$('#m-tm').click();
 
-// شاشة ترتيب الملفات قبل الدمج
-function mergeUI(fs){const old=$('#mgo');if(old)old.remove();let L=fs.slice();
- const o=E('div','ov','<div class="ph"><b>🔗 ترتيب الملفات قبل الدمج</b><button class="x">✕</button></div><div class="ob"><div class="mh">الأول فوق والأخير تحت. رتّبهم بـ ⬆ ⬇ وبعدين دمج.</div><div class="ml"></div><label class="btn ad">➕ ملفات تانية<input type="file" accept="application/pdf" multiple hidden></label><input class="mn" placeholder="اسم الملف المدمج (اختياري)"></div><div class="mf"><button class="btn p go">🔗 دمج</button></div>');
- o.id='mgo';const ml=o.querySelector('.ml'),go=o.querySelector('.go');
- const draw=()=>{ml.innerHTML='';L.forEach((f,i)=>{const r=E('div','mr','<span class="mi"></span><b></b><small></small><button class="u">⬆</button><button class="d">⬇</button><button class="r">✕</button>');
-  r.querySelector('.mi').textContent=i+1;r.querySelector('b').textContent=f.name.replace(/\.pdf$/i,'');r.querySelector('small').textContent=fmt(f.size);
-  const u=r.querySelector('.u'),d=r.querySelector('.d');u.disabled=i===0;d.disabled=i===L.length-1;
-  u.onclick=()=>{[L[i-1],L[i]]=[L[i],L[i-1]];draw()};d.onclick=()=>{[L[i+1],L[i]]=[L[i],L[i+1]];draw()};
-  r.querySelector('.r').onclick=()=>{L.splice(i,1);draw()};ml.append(r)});go.disabled=L.length<2;go.textContent='🔗 دمج ('+L.length+' ملفات)'};
- draw();document.body.append(o);
- o.querySelector('.x').onclick=()=>o.remove();
- o.querySelector('.ad input').onchange=e=>{L.push(...e.target.files);e.target.value='';draw()};
- go.onclick=async()=>{const nm=o.querySelector('.mn').value.trim()||('مدمج '+new Date().toLocaleDateString('ar-EG')),fl=L.slice();o.remove();window.inkBusy&&inkBusy(true,'جاري الدمج…');
-  try{const D=await PDFLib.PDFDocument.create();for(const f of fl){const s=await PDFLib.PDFDocument.load(await f.arrayBuffer());(await D.copyPages(s,s.getPageIndices())).forEach(p=>D.addPage(p))}
-   const by=await D.save(),id='p'+Date.now();await tx('f','readwrite',s=>s.put(by.buffer.slice(by.byteOffset,by.byteOffset+by.byteLength),id));await dbPut({id,n:nm,k:'pdf',s:{},u:Date.now()});window.inkBusy&&inkBusy(false);openDoc(id)}catch(x){window.inkBusy&&inkBusy(false);alert('فشل الدمج (ممكن ملف محمي بباسورد)')}}}
 function lib(l,a){if(!$('#ls')){const i=E('input');i.id='ls';i.type='search';i.placeholder='🔍 ابحث في ملفاتك';i.oninput=home;l.before(i);const so=E('select');so.id='so';[['u','الأحدث'],['n','الاسم'],['sz','الحجم']].forEach(([v,t])=>{const o=E('option');o.value=v;o.textContent=t;so.append(o)});so.value=SO();so.onchange=()=>{try{localStorage.setItem('inkso',so.value)}catch(e){}home()};i.after(so);const t=E('div');t.id='tgs';l.before(t)}
  const t=$('#tgs');t.innerHTML='';[...new Set(a.map(d=>d.tag).filter(Boolean))].forEach(x=>{const b=E('button','chip'+(S.tg===x?' on':''));b.textContent='📁 '+x;b.onclick=()=>{S.tg=S.tg===x?'':x;home()};t.append(b)})}

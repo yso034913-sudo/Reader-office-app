@@ -18,6 +18,8 @@ input[type=search],input[type=text],input.mn,input:not([type]),select{background
 
 /* ---------- home ---------- */
 #home{position:fixed;inset:0;overflow-y:auto;padding:calc(14px + var(--st)) 14px calc(92px + var(--sb));-webkit-overflow-scrolling:touch}
+/* Home screen supports horizontal swipes between Office apps while preserving vertical scrolling. */
+#home{touch-action:pan-y}
 #hhd{display:flex;align-items:center;gap:12px;margin-bottom:12px}
 #hhd img{border-radius:12px}
 #hhd div{flex:1}
@@ -42,7 +44,7 @@ input[type=search],input[type=text],input.mn,input:not([type]),select{background
 .it button{background:none;border:0;padding:8px;color:var(--fg2)}
 .it .lkb.on{color:var(--hl)}
 .ft{flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:12px;font-weight:700;cursor:pointer;color:#fff}
-.ft.pdf{background:#b42323}.ft.nt{background:#18794e}
+.ft.nt{background:#18794e}
 .em{text-align:center;color:var(--fg2);padding:36px 12px}
 
 /* ---------- editor ---------- */
@@ -166,3 +168,152 @@ input[type=search],input[type=text],input.mn,input:not([type]),select{background
 #hnav button i{font-style:normal;font-size:22px;line-height:1}
 #hnav button.on{color:var(--fg);background:var(--card);box-shadow:inset 0 0 0 1px var(--acc)}
 .tp{margin-bottom:4px}
+
+/* Reader All v29 — phone-first layout (Android/iOS touch screens) */
+@media (max-width: 760px), (pointer: coarse) {
+  :root { --phone-pad: 12px; }
+  html, body { width:100%; height:100%; height:100dvh; }
+  body { font-size:16px; -webkit-text-size-adjust:100%; }
+  button, .btn, select, input { touch-action:manipulation; }
+  button, .btn { min-height:44px; padding:10px 13px; }
+  input[type=search], input[type=text], input.mn, input:not([type]), select, textarea { min-height:44px; font-size:16px !important; }
+
+  /* Home: single-column cards and fixed bottom navigation */
+  #home { padding:calc(10px + var(--st)) var(--phone-pad) calc(84px + var(--sb)); }
+  #hhd { gap:10px; margin-bottom:14px; }
+  #hhd h1 { font-size:21px; }
+  #hsub { font-size:12px; }
+  #hmore { border-radius:16px; padding:10px; }
+  #hmore .btn { min-height:48px; display:flex; align-items:center; }
+  .big { min-height:54px; padding:15px 12px; font-size:16px; border-radius:14px; }
+  .trow { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:10px 0; }
+  .trow .btn, .trow button, .trow label { min-width:0; min-height:46px; white-space:normal; text-align:center; display:flex; justify-content:center; align-items:center; }
+  #ls { width:calc(100% - 88px); min-height:46px; }
+  #so { width:78px; min-height:46px; }
+  #tgs { flex-wrap:nowrap; overflow-x:auto; padding:3px 1px 8px; scrollbar-width:none; }
+  #tgs::-webkit-scrollbar { display:none; }
+  .chip { flex:none; min-height:36px; display:inline-flex; align-items:center; }
+  .it { min-height:64px; padding:10px; border-radius:15px; }
+  .it button { min-width:42px; min-height:42px; }
+  #hnav { min-height:64px; padding:6px 8px calc(6px + var(--sb)); gap:6px; }
+  #hnav button { min-height:48px; font-size:11px; }
+  #hnav button i { font-size:21px; }
+
+  /* PDF / notes reader */
+  #top { min-height:52px; gap:2px; padding-inline:5px; }
+  #top button { min-width:40px; min-height:44px; padding:7px; }
+  #ttl { font-size:14px; }
+  #ex { min-height:38px; padding:6px 9px; font-size:12px; }
+  #sb { gap:5px; padding:6px; }
+  #sb button { min-width:40px; min-height:42px; }
+  #pgs { padding:8px 0 14px; }
+  #tb { justify-content:flex-start; overflow-x:auto; overscroll-behavior-x:contain; scrollbar-width:none; gap:4px; padding:6px 8px calc(7px + var(--sb)); }
+  #tb::-webkit-scrollbar { display:none; }
+  #tb button, #tb .ab { flex:0 0 46px; max-width:46px; min-width:46px; height:46px; }
+  #tb .sep { flex:0 0 1px; margin-inline:3px; }
+  .pop { inset-inline:8px; bottom:calc(72px + var(--sb)); max-height:min(66dvh,560px); padding:14px; border-radius:18px 18px 14px 14px; }
+  #mm button { min-height:46px; }
+  #sa { max-width:calc(100vw - 16px); overflow-x:auto; bottom:calc(72px + var(--sb)); }
+  #plh { min-height:54px; padding:calc(6px + var(--st)) 8px 6px; }
+  #plh button { min-height:42px; }
+  #plb { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .dlg { align-items:end; padding:0; }
+  .dbox { width:100%; max-width:none; border-radius:20px 20px 0 0; padding:20px 16px calc(16px + var(--sb)); }
+  .dbt { display:flex; }
+  .dbt button { flex:1; min-height:48px; }
+  #trc { bottom:calc(70px + var(--sb)); width:calc(100vw - 16px); max-height:55dvh; }
+  .ov .ob { padding:12px; }
+  .ph { min-height:54px; padding:calc(8px + var(--st)) 12px 8px; }
+}
+
+@media (max-width: 420px) {
+  #pn { min-width:26px; padding-inline:2px; }
+  #ex { font-size:11px; }
+  .trow { grid-template-columns:1fr; }
+  #plb { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+@media (max-height: 520px) and (orientation:landscape) {
+  #home { padding-bottom:calc(68px + var(--sb)); }
+  #hnav { min-height:54px; }
+  #hnav button { flex-direction:row; justify-content:center; gap:7px; }
+  #tb { padding-top:3px; padding-bottom:calc(3px + var(--sb)); }
+  #tb button, #tb .ab { height:40px; }
+  .pop { max-height:72dvh; }
+}
+
+/* Reader All v30 — compact secondary controls (30px) for mobile */
+@media (max-width: 760px), (pointer: coarse) {
+  /* Secondary actions inside tool menus and option sheets only.
+     Primary navigation, save/export, confirmation and file actions keep larger targets. */
+  #mm button,
+  #plh button,
+  .pop .row button,
+  .pop .chip,
+  #trc .trh button,
+  .mr button,
+  .cpop button:not(.cc),
+  .ocr-head button {
+    min-height:30px;
+    height:30px;
+    padding:4px 9px;
+    font-size:12px;
+    line-height:1.2;
+    border-radius:8px;
+  }
+  .pop { gap:8px; }
+}
+
+
+/* Reader All v37 — app-wide settings and light theme */
+:root{--app-font:16px;--eye-alpha:0}
+body{font-size:var(--app-font)}
+:root[data-theme="light"]{--bg:#f4f6fb;--desk:#e9edf5;--bar:#fff;--card:#f0f3f9;--line:#d5dce8;--fg:#182235;--fg2:#667085;--acc:#315bd6;--hl:#d99a16}
+:root[data-theme="light"] #ed{background:var(--desk)}
+:root[data-theme="light"] #ed.nt .pg canvas:first-child{filter:none}
+:root[data-theme="light"] .pg{box-shadow:0 2px 12px #15213a22}
+body.eye-protect:after{content:"";position:fixed;inset:0;z-index:9999;pointer-events:none;background:rgba(255,174,72,var(--eye-alpha));mix-blend-mode:multiply}
+body.reduce-motion *,body.reduce-motion *:before,body.reduce-motion *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+.settings-page{padding:4px 0 18px}
+.settings-head{padding:8px 2px 10px}
+.settings-head h2{margin:0;font-size:21px}
+.settings-head p{margin:3px 0;color:var(--fg2);font-size:13px}
+.settings-group{background:var(--bar);border:1px solid var(--line);border-radius:16px;padding:10px 12px;margin:10px 0}
+.settings-group h3{font-size:15px;margin:2px 0 8px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:58px;padding:9px 0;border-top:1px solid var(--line)}
+.settings-group h3+.setting-row{border-top:0}
+.setting-row>span:first-child{display:flex;flex-direction:column;gap:2px;min-width:0}
+.setting-row b{font-size:14px;font-weight:650}
+.setting-row small{font-size:12px;color:var(--fg2);line-height:1.4}
+.setting-row select{width:116px;flex:none;padding:7px 9px}
+.setting-check{width:22px;height:22px;accent-color:var(--acc);flex:none}
+.setting-row input[type=range]{width:112px;accent-color:var(--acc);flex:none}
+.setting-row .btn{font-size:12px;padding:8px 10px;white-space:nowrap}
+.eye-level{min-height:54px}
+.version-tag{font-size:12px;color:var(--fg2);white-space:nowrap}
+@media(max-width:760px),(pointer:coarse){
+ #hnav button{min-width:0;font-size:10px}
+ #hnav button i{font-size:19px}
+ .settings-group{padding:9px 11px}
+ .setting-row{gap:8px}
+ .setting-row small{max-width:220px}
+}
+
+/* Settings additions: file manager, converters and storage */
+.settings-note{font-size:12px;color:var(--fg2);line-height:1.65;margin:4px 0 10px}
+.convert-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.convert-grid .btn{min-height:44px;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center}
+.settings-file-list{display:flex;flex-direction:column;gap:7px;margin-top:8px}
+.settings-file-row{display:flex;align-items:center;gap:6px;padding:9px;border:1px solid var(--line);border-radius:11px;background:var(--card);min-width:0}
+.settings-file-row>div{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.settings-file-row b{font-size:12px;overflow-wrap:anywhere}
+.settings-file-row small{font-size:10px;color:var(--fg2)}
+.settings-file-row .btn{padding:7px 8px;font-size:11px;white-space:nowrap}
+.settings-file-row .danger{color:#dc5555}
+.storage-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
+.storage-summary>div{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px;display:flex;flex-direction:column;gap:5px}
+.storage-summary small{font-size:11px;color:var(--fg2)}
+.storage-summary b{font-size:17px}
+.storage-meter{height:8px;background:var(--card);border-radius:20px;overflow:hidden}
+.storage-meter span{display:block;height:100%;width:0;background:var(--acc);border-radius:20px;transition:width .25s}
+@media(max-width:380px){.settings-file-row{flex-wrap:wrap}.settings-file-row>div{flex-basis:100%}}

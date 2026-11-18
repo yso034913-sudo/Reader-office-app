@@ -12,9 +12,75 @@ window.inkBusy=(on,t)=>{let b=$('#busy');if(!on){b&&b.remove();return}
 const toast=t=>{const d=E('div','oftoast');d.textContent=t;document.body.append(d);setTimeout(()=>d.remove(),2200)};
 
 // ---------- home ----------
-const tabPaint=()=>{const t=inkGetTab();document.querySelectorAll('#hnav button').forEach(b=>{const on=b.dataset.tab===t;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});document.querySelectorAll('.tp').forEach(p=>p.hidden=p.dataset.tab!==t)};
-document.querySelectorAll('#hnav button').forEach(b=>b.onclick=()=>{inkSetTab(b.dataset.tab);S.tg='';tabPaint();home();$('#home').scrollTop=0});
+const tabOrder=['ppt','doc','xls','settings'];
+const tabPaint=()=>{const t=inkGetTab();document.querySelectorAll('#hnav button').forEach(b=>{const on=b.dataset.tab===t;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});document.querySelectorAll('.tp').forEach(p=>p.hidden=p.dataset.tab!==t);const isSettings=t==='settings';$('#list').hidden=isSettings;['#ls','#so','#tgs'].forEach(q=>{const e=$(q);if(e)e.hidden=isSettings});};
+const switchHomeTab=t=>{if(!tabOrder.includes(t)||t===inkGetTab())return;inkSetTab(t);S.tg='';tabPaint();home();tabPaint();$('#home').scrollTop=0};
+document.querySelectorAll('#hnav button').forEach(b=>b.onclick=()=>switchHomeTab(b.dataset.tab));
+// Swipe horizontally across the home screen to move between PowerPoint, Word and Excel.
+// Vertical scrolling and taps on controls remain native and unaffected.
+const homeEl=$('#home');let homeTouch=null;
+homeEl.addEventListener('touchstart',e=>{
+ if(e.touches.length!==1)return;
+ const target=e.target;
+ if(target.closest('button,label,input,select,textarea,a,[contenteditable="true"]')){homeTouch=null;return;}
+ const t=e.touches[0];homeTouch={x:t.clientX,y:t.clientY};
+},{passive:true});
+homeEl.addEventListener('touchend',e=>{
+ if(!homeTouch||e.changedTouches.length!==1)return;
+ const t=e.changedTouches[0],dx=t.clientX-homeTouch.x,dy=t.clientY-homeTouch.y;homeTouch=null;
+ if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.25)return;
+ const current=tabOrder.indexOf(inkGetTab());if(current<0)return;
+ const next=dx<0?Math.min(tabOrder.length-1,current+1):Math.max(0,current-1);
+ if(next!==current)switchHomeTab(tabOrder[next]);
+},{passive:true});
+homeEl.addEventListener('touchcancel',()=>{homeTouch=null},{passive:true});
 tabPaint();
+
+// ---------- app-wide settings ----------
+const PREF='readerall.settings.v1';
+const defaults={theme:'dark',eye:false,eyeLevel:20,motion:false,font:16,deleteConfirm:true};
+const readPrefs=()=>{try{return {...defaults,...JSON.parse(localStorage.getItem(PREF)||'{}')}}catch(e){return {...defaults}}};
+let prefs=readPrefs();
+const savePrefs=()=>{try{localStorage.setItem(PREF,JSON.stringify(prefs))}catch(e){toast('تعذر حفظ الإعدادات على هذا الجهاز')}};
+const applyPrefs=()=>{
+ const systemDark=()=>!!(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
+ const theme=prefs.theme==='system'?(systemDark()?'dark':'light'):prefs.theme;
+ document.documentElement.dataset.theme=theme;
+ document.documentElement.style.setProperty('--eye-alpha',prefs.eye?String(prefs.eyeLevel/100):'0');
+ document.body.classList.toggle('eye-protect',!!prefs.eye);
+ document.body.classList.toggle('reduce-motion',!!prefs.motion);
+ document.documentElement.style.setProperty('--app-font',prefs.font+'px');
+ const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=theme==='dark'?'#0f1523':'#f4f6fb';
+};
+const bindSetting=(id,key,convert=v=>v)=>{const el=$('#'+id);if(!el)return;el.value=String(prefs[key]);el.checked=!!prefs[key];el.addEventListener('change',()=>{prefs[key]=convert(el.type==='checkbox'?el.checked:el.value);savePrefs();applyPrefs();if(id==='set-eye')$('#eye-level-row').hidden=!prefs.eye})};
+bindSetting('set-theme','theme',v=>v);bindSetting('set-eye','eye',Boolean);bindSetting('set-eye-level','eyeLevel',Number);bindSetting('set-motion','motion',Boolean);bindSetting('set-font','font',Number);bindSetting('set-delete-confirm','deleteConfirm',Boolean);
+$('#eye-level-row').hidden=!prefs.eye;applyPrefs();
+if(window.matchMedia){const mq=matchMedia('(prefers-color-scheme: dark)');mq.addEventListener&&mq.addEventListener('change',()=>{if(prefs.theme==='system')applyPrefs()})}
+$('#set-reset').onclick=async()=>{if(!await inkConfirm('إعادة جميع إعدادات التطبيق إلى الوضع الافتراضي؟'))return;prefs={...defaults};savePrefs();['set-theme','set-eye','set-eye-level','set-motion','set-font','set-delete-confirm'].forEach(id=>{const el=$('#'+id);if(el){if(el.type==='checkbox')el.checked=!!prefs[({ 'set-eye':'eye','set-motion':'motion','set-delete-confirm':'deleteConfirm'})[id]];else el.value=String(prefs[({'set-theme':'theme','set-eye-level':'eyeLevel','set-font':'font'})[id]])}});$('#eye-level-row').hidden=true;applyPrefs();toast('تمت إعادة ضبط الإعدادات')};
+// Unified file manager inside Settings.
+const fileList=$('#set-file-list');
+const renderSettingsFiles=async()=>{
+ if(!fileList)return;fileList.hidden=false;fileList.textContent='جارٍ تحميل الملفات…';
+ try{const files=await window.inkListAllFiles();fileList.innerHTML='';
+  if(!files.length){fileList.textContent='لا توجد ملفات محفوظة حاليًا.';return}
+  files.forEach(f=>{const row=document.createElement('div');row.className='settings-file-row';
+   const info=document.createElement('div'),name=document.createElement('b'),meta=document.createElement('small');name.textContent=f.n;meta.textContent=({doc:'Word',xls:'Excel',ppt:'PowerPoint',note:'ملاحظة',pdf:'PDF'}[f.k]||'ملف')+(f.lk?' · 🔒':'');info.append(name,meta);
+   const open=document.createElement('button');open.className='btn';open.textContent='فتح';open.onclick=()=>window.inkOpenStoredFile(f.id);
+   const rename=document.createElement('button');rename.className='btn';rename.textContent='✏️';rename.setAttribute('aria-label','إعادة تسمية');rename.onclick=async()=>{const n=prompt('الاسم الجديد',f.n);if(n&&n.trim()){await window.inkRenameStoredFile(f.id,n.trim().slice(0,120));renderSettingsFiles();refreshStorage()}};
+   const del=document.createElement('button');del.className='btn danger';del.textContent='حذف';del.onclick=async()=>{if(f.lk&&window.inkVerify&&!await window.inkVerify({title:'الملف مقفول 🔒',sub:f.n}))return;if(!await inkConfirm('حذف «'+f.n+'» نهائيًا؟'))return;await window.inkDeleteStoredFile(f.id);renderSettingsFiles();refreshStorage()};
+   row.append(info,open,rename,del);fileList.append(row);
+  });
+ }catch(e){fileList.textContent='تعذر تحميل قائمة الملفات.'}
+};
+$('#set-file-manager').onclick=()=>{if(fileList.hidden||!fileList.childElementCount)renderSettingsFiles();else fileList.hidden=true};
+const humanBytes=n=>n<1024?Math.round(n)+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(2)+' MB';
+const refreshStorage=async()=>{try{const x=await window.inkStorageStats();$('#storage-count').textContent=x.count+' ملف';$('#storage-size').textContent=humanBytes(x.bytes);const quota=x.quota||0,used=x.usage||x.bytes;const pct=quota?Math.min(100,used/quota*100):0;$('#storage-meter-fill').style.width=pct+'%';$('#storage-detail').textContent=quota?'المساحة المقدرة المستخدمة من مساحة الموقع: '+humanBytes(used)+' من '+humanBytes(quota)+'.':'الحجم المحسوب لملفات التطبيق فقط؛ تقدير الحصة غير متاح على هذا الجهاز.'}catch(e){$('#storage-detail').textContent='تعذر قراءة معلومات التخزين.'}};
+$('#set-storage-refresh').onclick=refreshStorage;refreshStorage();
+const goTab=t=>document.querySelector('#hnav [data-tab="'+t+'"]').click();
+$('#set-convert-word').onclick=()=>goTab('doc');$('#set-convert-excel').onclick=()=>goTab('xls');$('#set-convert-ppt').onclick=()=>goTab('ppt');
+
+$('#set-backup').onclick=()=>{$('#hmore').hidden=false;$('#bkx').click()};
+window.inkAppSettings=()=>({...prefs});
 $('#hmn').onclick=()=>{const m=$('#hmore');m.hidden=!m.hidden};
 
 // ---------- editor: tools, popups ----------
@@ -32,7 +98,7 @@ $('#m-po').addEventListener('click',()=>$('#ed').classList.toggle('po',!!S.po));
 const _o=window.openDoc;
 window.openDoc=async function(id){
  let d;try{d=await tx('d','readonly',s=>s.get(id))}catch(e){}
- if(d&&d.lk&&(d.k==='pdf'||d.k==='note')&&!await inkVerify({title:'الملف مقفول 🔒',sub:d.n}))return;
+ if(d&&d.lk&&d.k==='note'&&!await inkVerify({title:'الملف مقفول 🔒',sub:d.n}))return;
  const r=await _o.apply(this,arguments);
  if(S.d&&S.d.k==='note'&&S.t==='hand'){S.t='pen';sync()}
  return r};

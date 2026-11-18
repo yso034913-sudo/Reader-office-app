@@ -9,23 +9,60 @@
 <div id="hhd"><img src="icon-192.png" alt="" width="44" height="44"><div><h1>Reader All</h1><small id="hsub"></small></div><button id="hmn" aria-label="المزيد"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button></div>
 <div id="hmore" hidden>
 <button class="btn" id="bkx">💾 نسخة احتياطية</button>
-<label class="btn">🎧 تحويل صوت (WMA…) لـ MP3<input id="fcv" type="file" accept="audio/*,video/*,.wma,.wmv,.asf,.amr,.aif,.aiff,.flac,.ogg,.opus,.aac,.m4a,.wav,.mid,.midi" multiple hidden></label>
-<label class="btn">♻️ استرجاع نسخة<input id="bki" type="file" accept=".inkbak" hidden></label>
+
+<label class="btn">♻️ استرجاع نسخة<input id="bki" type="file" accept=".inkbak" hidden></label><label class="btn">🔐 فتح ملف مشفر<input id="encin" type="file" accept=".inkenc" hidden></label>
 </div>
 <div class="tp" data-tab="ppt">
 <label class="btn p big">📊 فتح PowerPoint<input id="fop" type="file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden></label>
-<div class="trow"><button class="btn" id="nw-ppt">📊 PowerPoint جديد</button><label class="btn">🎧 تحويل صوت لـ MP3<input id="fcv2" type="file" accept="audio/*,video/*,.wma,.wmv,.asf,.amr,.aif,.aiff,.flac,.ogg,.opus,.aac,.m4a,.wav,.mid,.midi" multiple hidden></label></div></div>
+<div class="trow"><button class="btn" id="nw-ppt">📊 PowerPoint جديد</button></div></div>
 <div class="tp" data-tab="doc" hidden>
 <label class="btn p big">📝 فتح Word<input id="fod" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden></label>
-<div class="trow"><button class="btn" id="nw-doc">📄 Word جديد</button></div></div>
+<div class="trow"><button class="btn" id="nw-doc">📄 Word جديد</button><button class="btn" id="tpl-doc">📚 قوالب Word</button></div><label class="btn scanbtn">📷 تصوير ورقة وتحويلها إلى Word<input id="scan-word" type="file" accept="image/*" capture="environment" hidden></label><small class="scanhelp">OCR مجاني للعربية والإنجليزية — يحتاج إنترنت أول مرة لتنزيل ملفات اللغة</small></div>
 <div class="tp" data-tab="xls" hidden>
 <label class="btn p big">📈 فتح Excel<input id="fox" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" hidden></label>
-<div class="trow"><button class="btn" id="nw-xls">📊 Excel جديد</button></div></div>
+<div class="trow"><button class="btn" id="nw-xls">📊 Excel جديد</button><button class="btn" id="tpl-xls">📚 قوالب Excel</button></div></div>
 <div id="list"></div>
-<nav id="hnav" role="tablist" aria-label="الأقسام"><button data-tab="ppt" role="tab"><i>📊</i><span>PowerPoint</span></button><button data-tab="doc" role="tab"><i>📝</i><span>Word</span></button><button data-tab="xls" role="tab"><i>📈</i><span>Excel</span></button></nav>
+<section class="tp settings-page" data-tab="settings" hidden aria-label="إعدادات التطبيق">
+ <div class="settings-head"><h2>⚙️ إعدادات التطبيق</h2><p>خصص Reader All بالطريقة التي تناسبك</p></div>
+ <section class="settings-group"><h3>🎨 المظهر والشاشة</h3>
+  <label class="setting-row"><span><b>المظهر</b><small>اختيار الوضع الفاتح أو الداكن أو حسب الجهاز</small></span><select id="set-theme"><option value="dark">داكن</option><option value="light">فاتح</option><option value="system">حسب الجهاز</option></select></label>
+  <label class="setting-row"><span><b>حماية البصر</b><small>تقليل وهج الشاشة بإضافة درجة دافئة</small></span><input id="set-eye" type="checkbox" class="setting-check"></label>
+  <div class="setting-row eye-level" id="eye-level-row"><span><b>قوة حماية البصر</b><small>اضبط الدرجة حسب راحتك</small></span><input id="set-eye-level" type="range" min="10" max="45" step="5" value="20"></div>
+  <label class="setting-row"><span><b>تقليل الحركة</b><small>تقليل الحركات والانتقالات</small></span><input id="set-motion" type="checkbox" class="setting-check"></label>
+ </section>
+ <section class="settings-group"><h3>📖 القراءة والتعامل</h3>
+  <label class="setting-row"><span><b>حجم الخط العام</b><small>تكبير أو تصغير النصوص والقوائم</small></span><select id="set-font"><option value="14">صغير</option><option value="16">متوسط</option><option value="18">كبير</option><option value="20">كبير جدًا</option></select></label>
+  <label class="setting-row"><span><b>تأكيد قبل الحذف</b><small>طلب تأكيد قبل حذف الملفات</small></span><input id="set-delete-confirm" type="checkbox" class="setting-check" checked></label>
+ </section>
+ <section class="settings-group"><h3>📁 مدير الملفات</h3>
+  <p class="settings-note">استعرض كل ملفات Word وExcel وPowerPoint المحفوظة داخل التطبيق، وافتحها أو أعد تسميتها أو احذفها.</p>
+  <div class="setting-row"><span><b>إدارة الملفات</b><small>عرض كل الملفات المحفوظة في مكان واحد</small></span><button class="btn" id="set-file-manager">فتح المدير</button></div>
+  <div id="set-file-list" class="settings-file-list" aria-live="polite" hidden></div>
+ </section>
+ <section class="settings-group"><h3>🔄 مركز تحويل الملفات</h3>
+  <p class="settings-note">افتح الملف في المحرر المناسب ثم استخدم خيار PDF أو التصدير من شريط أدوات المحرر.</p>
+  <div class="convert-grid">
+   <button class="btn" id="set-convert-word">📝 فتح Word</button>
+   <button class="btn" id="set-convert-excel">📊 فتح Excel / CSV</button>
+   <button class="btn" id="set-convert-ppt">📽 فتح PowerPoint</button>
+   </div>
+ </section>
+ <section class="settings-group"><h3>💾 إدارة التخزين</h3>
+  <div class="storage-summary"><div><small>الملفات المحفوظة</small><b id="storage-count">—</b></div><div><small>حجم بيانات التطبيق</small><b id="storage-size">جارٍ الحساب…</b></div></div>
+  <div class="storage-meter"><span id="storage-meter-fill"></span></div>
+  <p class="settings-note" id="storage-detail">يتم حساب حجم قاعدة بيانات الملفات والمساحة المتاحة على الجهاز.</p>
+  <div class="setting-row"><span><b>تحديث معلومات التخزين</b><small>إعادة حساب المساحة المستخدمة</small></span><button class="btn" id="set-storage-refresh">تحديث</button></div>
+ </section>
+ <section class="settings-group"><h3>🗂️ النسخ والإعدادات</h3>
+  <div class="setting-row"><span><b>النسخ الاحتياطي</b><small>حفظ نسخة من ملفاتك وإعداداتك</small></span><button class="btn" id="set-backup">إنشاء نسخة</button></div>
+  <div class="setting-row"><span><b>استعادة الإعدادات</b><small>إرجاع إعدادات التطبيق الافتراضية فقط</small></span><button class="btn" id="set-reset">إعادة ضبط</button></div>
+ </section>
+ <section class="settings-group about-group"><h3>ℹ️ حول التطبيق</h3><div class="setting-row"><span><b>Reader All</b><small>قارئ ومحرر مستندات Office</small></span><span class="version-tag">الإصدار 1.0</span></div></section>
+</section>
+<nav id="hnav" role="tablist" aria-label="الأقسام"><button data-tab="ppt" role="tab"><i>📊</i><span>PowerPoint</span></button><button data-tab="doc" role="tab"><i>📝</i><span>Word</span></button><button data-tab="xls" role="tab"><i>📈</i><span>Excel</span></button><button data-tab="settings" role="tab"><i>⚙️</i><span>الإعدادات</span></button></nav>
 </section>
 <section id="ed" hidden>
-<div id="top"><button id="bk" aria-label="رجوع"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></button><b id="ttl"></b><button id="sq" hidden aria-label="بحث"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button><button id="pb" aria-label="الصفحات"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></button><button id="bm" aria-label="علامة"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg></button><button id="pn" aria-label="رقم الصفحة"></button><button id="ex">⬇ PDF</button><button id="mn" aria-label="المزيد"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button></div>
+<div id="top"><button id="bk" aria-label="رجوع"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></button><b id="ttl"></b><button id="pb" aria-label="الصفحات"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></button><button id="bm" aria-label="علامة"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg></button><button id="pn" aria-label="رقم الصفحة"></button><button id="ex">⬇ PDF</button><button id="mn" aria-label="المزيد"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button></div>
 <div id="sb" hidden><input id="si" type="search" dir="auto" placeholder="بحث في الملف" enterkeyhint="search"><button id="sp" aria-label="السابق">▲</button><button id="sn" aria-label="التالي">▼</button><span id="cnt"></span><button id="sx" aria-label="إغلاق البحث">✕</button></div>
 <div id="sc"><div id="pgs"></div></div>
 <div id="tb">
@@ -37,7 +74,7 @@
 <div id="mm" class="pop" hidden>
 <h4>✍ الكتابة</h4><button data-t="mv">✋ تحريك العناصر</button><div class="row"><button data-sh="line">╱ خط</button><button data-sh="rect">▭ مستطيل</button><button data-sh="ell">◯ دائرة</button></div><select id="shs" hidden><option value="line">خط</option><option value="rect">مستطيل</option><option value="ell">دائرة</option></select><button id="m-po">🖐 وضع القلم فقط: إيقاف</button>
 <h4>📚 المذاكرة</h4><button id="m-tm">⏱ مؤقت مذاكرة 25 دقيقة</button>
-<h4>👁 العرض</h4><div class="row" style="direction:ltr"><button id="zo" aria-label="تصغير">－ تصغير</button><button id="zi" aria-label="تكبير">＋ تكبير</button></div><button id="m-nt">🌙 وضع ليلي للـPDF</button><button id="tp"></button>
+<h4>👁 العرض</h4><div class="row" style="direction:ltr"><button id="zo" aria-label="تصغير">－ تصغير</button><button id="zi" aria-label="تكبير">＋ تكبير</button></div><button id="m-nt">🌙 وضع ليلي</button><button id="tp"></button>
 </div>
 <div id="pl" hidden><div id="plh"><button data-p="pg" class="on">📄 الصفحات</button><button data-p="bm">⭐ العلامات</button><button data-p="hl">🖍 الهايلايت</button><button id="plx" aria-label="إغلاق">✕</button></div><div id="plb"></div></div>
 <span id="tmr" hidden></span>
@@ -66,5 +103,5 @@ window.alert=m=>{dlg(m)};
 <script src="app.js"></script>
 <script src="ui.js"></script>
 <script src="office.js"></script>
-<script src="pptedit.js"></script>
+<script src="pptedit.js"></script><script src="scan.js"></script>
 </body></html>
