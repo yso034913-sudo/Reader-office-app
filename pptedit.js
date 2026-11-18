@@ -720,6 +720,7 @@ const addRow=(tc,tr,t,i,fr)=>{const n=tr.cloneNode(true);kids(n,A,'tc').forEach(
 async function repl(){const a=await inkAsk('ابحث عن:','');if(!a)return;const b=await inkAsk('استبدل بـ:','');if(b==null)return;commit();snap();let n=0;
  for(const s of S.slides)for(const t of all(s.doc,A,'t'))if(t.textContent.includes(a)){t.textContent=t.textContent.split(a).join(b);s.t=1;n++}
  X.O().dirty=1;draw();thumbs();X.toast(n?'اتبدّل في '+n+' موضع':'مفيش نتايج')}
+async function findInSlides(){const q=(await inkAsk('اكتب كلمة أو جملة للبحث في كل الشرائح:',''))?.trim();if(!q)return;commit();const start=S.cur;for(let step=0;step<S.slides.length;step++){const i=(start+step)%S.slides.length,sl=S.slides[i],els=all(tree(sl),P,'sp').concat(all(tree(sl),P,'graphicFrame'),all(tree(sl),P,'pic'));const hit=els.find(e=>all(e,A,'t').some(t=>t.textContent.toLocaleLowerCase().includes(q.toLocaleLowerCase())));if(hit){go(i);S.sel=hit;draw();X.toast('تم العثور على النص في الشريحة '+(i+1));return}}X.toast('ملقيناش النص ده في أي شريحة')}
 
 // ---------- save ----------
 // builds the .pptx from the current state (does not touch the UI)
@@ -798,7 +799,7 @@ window.pptEdit=async()=>{try{X.busy(true,'جاري تجهيز المحرر…');
      tbl:[B('＋صف',()=>tabOp(addRow)),B('－صف',()=>tabOp(delRow)),'|',B('＋عمود',()=>tabOp(addCol)),B('－عمود',()=>tabOp(delCol)),'|',B('دمج',()=>tabOp(merge)),'|',col('🎨 لون الخلية','لون الخلية المحددة',setCellFill,'#FFF2CC')]};
    if(S.sub&&secs[S.sub]&&(S.sub!='tbl'||tbl))return[bk,'|',...secs[S.sub]];
    return[B('🗑',delShape),B('📋',copy),B('📌',paste),'|',sb('fmt','🎨 تنسيق'),sb('arr','📐 ترتيب'),sb('anim','✨ حركة'),...(pic?[sb('pic','🖼 الصورة')]:[]),...(tbl?[sb('tbl','▦ جدول')]:[])]},
-  sld:()=>[B('＋ جديدة',()=>addSlide(0)),{el:tplSel},B('⧉ تكرار',()=>addSlide(1)),B('🗑 حذف',delSlide),'|',B('⬆',()=>mv(-1)),B('⬇',()=>mv(1)),'|',col('🖼','خلفية',bgSet),B('🔍 استبدال',repl),{el:szSel}],
+  sld:()=>[B('＋ جديدة',()=>addSlide(0)),{el:tplSel},B('⧉ تكرار',()=>addSlide(1)),B('🗑 حذف',delSlide),'|',B('⬆',()=>mv(-1)),B('⬇',()=>mv(1)),'|',col('🖼','خلفية',bgSet),B('🔎 بحث في الشرائح',findInSlides),B('🔍 استبدال',repl),{el:szSel}],
   shw:()=>{trSync();return[B('▶ تشغيل',()=>play(S.cur)),{el:tsel},{el:dsel},{el:ssel},{el:asel},B('🎬 للكل',()=>{const o=trRead();snap();for(const s of S.slides)setTr(s,o,1);X.toast('الانتقال اتطبّق على كل الشرايح')})]},
   nts:()=>[hint('ملاحظات المتحدث للشريحة دي — بتظهر في العرض بزرار 📝'),B('🗑 مسح',ntClear)]};
  const pn=E('div','pe-pn'),tb=E('div','pe-tabs');S.tab='ins';S.zm=1;
