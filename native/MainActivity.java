@@ -1,4 +1,4 @@
-package com.inkpad.app;
+package com.readerall.app;
 
 import android.content.Intent;
 import android.content.ClipData;
