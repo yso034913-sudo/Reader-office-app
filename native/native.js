@@ -1,4 +1,4 @@
-// Reader — Android (Capacitor) glue: share/save files, hardware back button.
+// Reader All — Android (Capacitor) glue: share/save files, hardware back button.
 (()=>{
 const C=window.Capacitor;if(!C||!C.isNativePlatform||!C.isNativePlatform())return;
 const P=C.Plugins||{},FS=P.Filesystem,SH=P.Share,AP=P.App;
