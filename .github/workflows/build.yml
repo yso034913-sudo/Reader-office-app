@@ -1,53 +1,117 @@
 name: Build APK
+
 on:
   push:
-    branches: [main]
   workflow_dispatch:
+
 permissions:
   contents: write
+
 concurrency:
-  group: build-apk
+  group: reader-apk-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   build:
+    name: Build and publish latest Reader.apk
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect project directory
+        id: project
+        shell: bash
+        run: |
+          if [[ -f readerall_v32/package.json && -f readerall_v32/scripts/build.sh ]]; then
+            echo "dir=readerall_v32" >> "$GITHUB_OUTPUT"
+          elif [[ -f package.json && -f scripts/build.sh ]]; then
+            echo "dir=." >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Could not find package.json and scripts/build.sh in repository root or readerall_v32/"
+            echo "Repository files:"
+            find . -maxdepth 3 -type f | sort | head -200
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
-      - uses: actions/setup-java@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 17
-      # اختياري: مفتاح توقيع ثابت عشان كل نسخة تتثبّت فوق اللي قبلها (شوف README)
-      - name: Restore signing key (optional)
+          java-version: '17'
+
+      - name: Restore stable Android signing key (optional)
         env:
           KS: ${{ secrets.DEBUG_KEYSTORE_B64 }}
+        shell: bash
         run: |
-          if [ -n "$KS" ]; then
-            mkdir -p ~/.android
-            echo "$KS" | base64 -d > ~/.android/debug.keystore
-            echo "Using the stable signing key"
+          if [[ -n "$KS" ]]; then
+            mkdir -p "$HOME/.android"
+            printf '%s' "$KS" | base64 --decode > "$HOME/.android/debug.keystore"
+            echo "Stable signing key restored."
           else
-            echo "::warning::DEBUG_KEYSTORE_B64 غير موجود. كل APK هيتوقّع بمفتاح مختلف ومش هيتثبّت فوق النسخة القديمة"
+            echo "::warning::DEBUG_KEYSTORE_B64 is not configured; this build may not install over an APK signed with another key."
           fi
+
       - name: Install dependencies
+        working-directory: ${{ steps.project.outputs.dir }}
+        shell: bash
         run: |
-          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          if [[ -f package-lock.json ]]; then
+            npm ci
+          else
+            npm install
+          fi
+
       - name: Build APK
+        shell: bash
         run: |
+          cd "${{ steps.project.outputs.dir }}"
           chmod +x scripts/*.sh
           bash scripts/build.sh
-      - name: Publish APK as a release
+          test -s "Reader All.apk"
+          mkdir -p "$GITHUB_WORKSPACE/dist"
+          cp "Reader All.apk" "$GITHUB_WORKSPACE/dist/Reader.apk"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Reader-APK-run-${{ github.run_number }}
+          path: dist/Reader.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Update latest GitHub Release asset
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_SHA: ${{ github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
+        shell: bash
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk "Reader All.apk"
+          NOTES="Built from commit ${BUILD_SHA:0:7} (workflow run ${RUN_NUMBER})."
           if gh release view latest >/dev/null 2>&1; then
-            gh release upload latest "Reader All.apk" --clobber
-            gh release edit latest --notes "Build ${GITHUB_SHA::7} (run ${GITHUB_RUN_NUMBER})"
+            gh release upload latest dist/Reader.apk --clobber
+            gh release edit latest --title "Reader All APK" --notes "$NOTES" --target "$BUILD_SHA"
           else
-            gh release create latest "Reader All.apk" --title "Reader All APK" --notes "Build ${GITHUB_SHA::7} (run ${GITHUB_RUN_NUMBER})" --latest
+            gh release create latest dist/Reader.apk \
+              --title "Reader All APK" \
+              --notes "$NOTES" \
+              --target "$BUILD_SHA" \
+              --latest
           fi
+
+      - name: Show build details
+        if: always()
+        run: |
+          echo "Commit: $GITHUB_SHA"
+          echo "Ref: $GITHUB_REF"
+          echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
