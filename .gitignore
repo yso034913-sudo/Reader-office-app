@@ -1,0 +1,16 @@
+node_modules/
+www/
+android/
+Reader.apk
+.DS_Store
+
+# Local secrets and signing keys
+.env
+.env.*
+!.env.example
+debug.keystore
+*.jks
+*.keystore
+*.p12
+*.pfx
+key.properties
