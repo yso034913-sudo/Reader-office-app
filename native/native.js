@@ -1,8 +1,48 @@
 // Reader All — Android (Capacitor) glue: share/save files, hardware back button.
 (()=>{
 const C=window.Capacitor;if(!C||!C.isNativePlatform||!C.isNativePlatform())return;
-const P=C.Plugins||{},FS=P.Filesystem,SH=P.Share,AP=P.App;
+const P=C.Plugins||{},FS=P.Filesystem,SH=P.Share,AP=P.App,CAM=P.Camera;
 const q=s=>document.querySelector(s);
+
+// ---- receive Office files from Android Open with / Share intents ----
+let incomingQueue=Promise.resolve();
+window.addEventListener('readerall-file-received',ev=>{
+ const d=ev.detail||{};
+ incomingQueue=incomingQueue.then(async()=>{
+  try{
+   if(!d.data||!d.name)return;
+   const raw=atob(d.data),bytes=new Uint8Array(raw.length);
+   for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+   const mime=d.type||'application/octet-stream';
+   const extByMime={
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'.docx',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'.xlsx',
+    'application/vnd.ms-excel':'.xls','text/csv':'.csv',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation':'.pptx'
+   };
+   const name=/\.(docx|xlsx|xls|csv|pptx)$/i.test(d.name)?d.name:d.name+(extByMime[mime]||'');
+   const file=new File([bytes],name,{type:mime});
+   if(typeof window.inkImportOffice==='function')await window.inkImportOffice(file);
+   else throw new Error('لم يتم تجهيز قارئ الملفات بعد');
+  }catch(e){alert('تعذر فتح الملف المستلم: '+(e&&e.message||e))}
+ });
+});
+// Ask for camera permission only when the scan-to-Word control is used.
+const scanInput=document.querySelector('#scan-word');
+if(scanInput&&CAM){scanInput.addEventListener('click',async ev=>{
+ ev.preventDefault();ev.stopImmediatePropagation();
+ try{
+  const perm=await CAM.requestPermissions({permissions:['camera']});
+  if(perm.camera!=='granted'){alert('لازم تسمح باستخدام الكاميرا علشان تصور الورقة.');return}
+  const photo=await CAM.getPhoto({quality:90,allowEditing:false,resultType:'uri',source:'CAMERA'});
+  if(!photo.webPath)return;
+  const blob=await (await fetch(photo.webPath)).blob();
+  const file=new File([blob],'scan-'+Date.now()+'.jpg',{type:blob.type||'image/jpeg'});
+  const dt=new DataTransfer();dt.items.add(file);scanInput.files=dt.files;
+  scanInput.dispatchEvent(new Event('change',{bubbles:true}));
+ }catch(e){if(e&&e.message)alert('تعذر تشغيل الكاميرا: '+e.message)}
+},true)}
+
 // ---- save / share files (blob downloads and Web Share don't work inside the WebView) ----
 async function out(blob,name){
  if(!FS||!SH)throw new Error('الإضافات الأصلية مش متاحة');
