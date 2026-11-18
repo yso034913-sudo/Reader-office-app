@@ -51,4 +51,3 @@ jobs:
           else
             gh release create latest "Reader All.apk" --title "Reader All APK" --notes "Build ${GITHUB_SHA::7} (run ${GITHUB_RUN_NUMBER})" --latest
           fi
- 
