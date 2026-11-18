@@ -1,0 +1,108 @@
+name: Build APK
+
+on:
+  # Run on every branch so the build is not silently skipped when the
+  # repository's default branch is named master or something other than main.
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and publish Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout latest commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      # Optional: configure DEBUG_KEYSTORE_B64 in repository secrets to keep
+      # the same signing certificate between builds and allow in-place updates.
+      - name: Restore stable Android debug signing key (optional)
+        env:
+          KS: ${{ secrets.DEBUG_KEYSTORE_B64 }}
+        shell: bash
+        run: |
+          if [[ -n "$KS" ]]; then
+            mkdir -p "$HOME/.android"
+            printf '%s' "$KS" | base64 --decode > "$HOME/.android/debug.keystore"
+            echo "Stable signing key restored."
+          else
+            echo "::warning::DEBUG_KEYSTORE_B64 is not configured. This build may not install over an APK signed with a different key."
+          fi
+
+      - name: Install dependencies
+        run: |
+          if [[ -f package-lock.json ]]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build APK
+        shell: bash
+        run: |
+          chmod +x scripts/*.sh
+          bash scripts/build.sh
+          test -s "Reader All.apk"
+          mkdir -p dist
+          cp "Reader All.apk" dist/Reader.apk
+
+      # Keep a per-run APK even if publishing the rolling Release fails.
+      - name: Upload APK build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Reader-All-APK-${{ github.run_number }}
+          path: dist/Reader.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      # Update the rolling 'latest' Release with the APK built from this commit.
+      - name: Publish latest APK release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          BUILD_SHA: ${{ github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
+        shell: bash
+        run: |
+          NOTES="Automated build ${BUILD_SHA:0:7} (workflow run ${RUN_NUMBER})."
+          if gh release view latest >/dev/null 2>&1; then
+            gh release upload latest dist/Reader.apk --clobber
+            gh release edit latest --title "Reader All APK" --notes "$NOTES"
+          else
+            gh release create latest dist/Reader.apk \
+              --title "Reader All APK" \
+              --notes "$NOTES" \
+              --target "$BUILD_SHA" \
+              --latest
+          fi
+
+      - name: Report build details
+        if: always()
+        run: |
+          echo "Commit: $GITHUB_SHA"
+          echo "Branch/ref: $GITHUB_REF"
+          echo "Workflow run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
