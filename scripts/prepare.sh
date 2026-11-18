@@ -2,7 +2,7 @@
 # Copies the web app into www/ and bundles every library locally so the APK works fully offline.
 set -euo pipefail
 rm -rf www && mkdir -p www/lib
-cp index.html app.js ui.js office.js pptedit.js office.css style.css manifest.json icon-192.png icon-512.png icon-maskable-512.png native/native.js www/
+cp index.html app.js ui.js office.js pptedit.js scan.js office.css style.css manifest.json icon-192.png icon-512.png icon-maskable-512.png native/native.js www/
 B=https://cdnjs.cloudflare.com/ajax/libs
 # ---- Office libs (from npm) — a missing one only disables that feature; office.js falls back to a CDN ----
 cpf(){ # cpf <dest-name> <pkg-dir> <find-pattern>...
@@ -27,12 +27,18 @@ cpf html2canvas.min.js html2canvas html2canvas.min.js
 # ---- ffmpeg.wasm (converts wma/aif/amr audio inside PowerPoint files to mp3) — optional, only that feature needs it ----
 mkdir -p www/lib/ffmpeg
 for pair in "@ffmpeg/ffmpeg/dist/umd/ffmpeg.js" "@ffmpeg/ffmpeg/dist/umd/814.ffmpeg.js" "@ffmpeg/core/dist/umd/ffmpeg-core.js" "@ffmpeg/core/dist/umd/ffmpeg-core.wasm"; do
-  if [ -f "node_modules/$pair" ]; then cp "node_modules/$pair" "www/lib/ffmpeg/$(basename "$pair")"; echo "lib ok: ffmpeg/$(basename "$pair")"; else echo "::warning::lib missing: $pair"; fi
+  if [ -s "node_modules/$pair" ]; then
+    cp "node_modules/$pair" "www/lib/ffmpeg/$(basename "$pair")"
+    echo "lib ok: ffmpeg/$(basename "$pair")"
+  else
+    echo "::error::Required FFmpeg file missing: $pair"
+    exit 1
+  fi
 done
 # the core libs are mandatory
 cd www
 # point the app at the local copies and drop the service worker (the APK already contains the files)
-sed -i "s#https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/#lib/#g; s#https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/#lib/#g" index.html app.js
+sed -i "s#https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/#lib/#g" index.html app.js
 sed -i "s#^if('serviceWorker'in navigator.*register('sw.js').*;\$##" app.js
 if grep -q "register('sw.js')" app.js; then echo "service worker removal failed"; exit 1; fi
 sed -i 's#<script src="ui.js"></script>#<script src="ui.js"></script><script src="native.js"></script>#' index.html
