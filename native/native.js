@@ -5,6 +5,13 @@ const P=C.Plugins||{},FS=P.Filesystem,SH=P.Share,AP=P.App,CAM=P.Camera;
 const q=s=>document.querySelector(s);
 
 // ---- receive Office files from Android Open with / Share intents ----
+// Java sends large files in base64 chunks; reassemble them, then dispatch the same event as before.
+const chunks={};
+window.__raChunk=(id,name,type,i,total,data)=>{
+ const c=chunks[id]||(chunks[id]={parts:new Array(total),got:0});
+ if(c.parts[i]===undefined){c.parts[i]=data;c.got++}
+ if(c.got===total){delete chunks[id];window.dispatchEvent(new CustomEvent('readerall-file-received',{detail:{name,type,data:c.parts.join('')}}))}
+};
 let incomingQueue=Promise.resolve();
 window.addEventListener('readerall-file-received',ev=>{
  const d=ev.detail||{};
@@ -27,6 +34,7 @@ window.addEventListener('readerall-file-received',ev=>{
   }catch(e){alert('تعذر فتح الملف المستلم: '+(e&&e.message||e))}
  });
 });
+window.__raReady=true; // lets MainActivity know the receiver exists
 // Ask for camera permission only when the scan-to-Word control is used.
 const scanInput=document.querySelector('#scan-word');
 if(scanInput&&CAM){scanInput.addEventListener('click',async ev=>{

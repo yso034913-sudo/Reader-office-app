@@ -46,10 +46,15 @@ public class MainActivity extends BridgeActivity {
     } else if (Intent.ACTION_VIEW.equals(action) && intent.getData() != null) {
       uris.add(intent.getData());
     }
-    for (Uri uri : uris) readAndSend(uri);
+    final WebView web = getBridge() != null ? getBridge().getWebView() : null;
+    if (web == null) return;
+    for (final Uri uri : uris) new Thread(new Runnable() { @Override public void run() { readAndSend(uri, web); } }).start();
   }
 
-  private void readAndSend(Uri uri) {
+  private static final int CHUNK = 262144; // chars of base64 per evaluateJavascript call (multiple of 4)
+
+  // Runs on a worker thread: reads the file, then hands it to the page in chunks once the page is ready.
+  private void readAndSend(Uri uri, final WebView web) {
     try {
       String name = "office-file";
       Cursor c = getContentResolver().query(uri, null, null, null, null);
@@ -65,18 +70,32 @@ public class MainActivity extends BridgeActivity {
         byte[] buf = new byte[16384]; int n;
         while ((n=in.read(buf))>0) out.write(buf,0,n);
       }
-      JSONObject payload = new JSONObject();
-      payload.put("name", name); payload.put("type", mime);
-      payload.put("data", Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP));
-      String js = "window.dispatchEvent(new CustomEvent('readerall-file-received',{detail:"+payload.toString()+"}));";
-      WebView web = getBridge().getWebView();
-      if (web != null) web.postDelayed(new Runnable() {
-        int tries=0;
+      final String b64 = Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
+      out = null;
+      final String id = java.util.UUID.randomUUID().toString();
+      final String qName = JSONObject.quote(name), qMime = JSONObject.quote(mime), qId = JSONObject.quote(id);
+      final int total = Math.max(1, (b64.length() + CHUNK - 1) / CHUNK);
+      web.postDelayed(new Runnable() {
+        int tries = 0;
         @Override public void run() {
-          if (web.getUrl()!=null && web.getUrl().startsWith("http")) web.evaluateJavascript(js, null);
-          else if (tries++<30) web.postDelayed(this, 300);
+          // wait until the page has loaded native.js (it sets window.__raReady)
+          web.evaluateJavascript("window.__raReady===true", new android.webkit.ValueCallback<String>() {
+            @Override public void onReceiveValue(String v) {
+              if ("true".equals(v)) {
+                for (int i = 0; i < total; i++) {
+                  String part = b64.substring(i * CHUNK, Math.min(b64.length(), (i + 1) * CHUNK));
+                  web.evaluateJavascript("window.__raChunk("+qId+","+qName+","+qMime+","+i+","+total+","+JSONObject.quote(part)+");", null);
+                }
+              } else if (tries++ < 100) {
+                web.postDelayed(Runnable_this(), 300);
+              } else {
+                android.util.Log.e("ReaderAll", "Page never became ready; shared file dropped");
+              }
+            }
+          });
         }
-      }, 900);
+        private Runnable Runnable_this() { return this; }
+      }, 500);
     } catch (Exception e) { android.util.Log.e("ReaderAll", "Could not receive shared file", e); }
   }
 }
