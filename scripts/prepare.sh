@@ -17,13 +17,15 @@ for f in node_modules/docx/build/index.umd.js node_modules/docx/dist/index.umd.c
 done
 [ -f www/lib/docx.min.js ] || echo "::warning::lib missing: docx.min.js"
 cpf exceljs.min.js exceljs exceljs.min.js
-# SheetJS: the official 0.20.x build if reachable, otherwise the npm 0.18.5 copy
-if ! curl -fsSL --retry 2 https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js -o www/lib/xlsx.full.min.js; then
-  echo "::warning::SheetJS CDN unreachable, using the npm copy"; rm -f www/lib/xlsx.full.min.js; cpf xlsx.full.min.js xlsx xlsx.full.min.js
-fi
+# SheetJS 0.20.3 comes from package.json (official tarball); a missing copy is fatal because Excel needs it
+cpf xlsx.full.min.js xlsx xlsx.full.min.js
+[ -f www/lib/xlsx.full.min.js ] || { echo "::error::xlsx.full.min.js missing"; exit 1; }
 cpf formula-parser.min.js hot-formula-parser formula-parser.min.js
 cpf pptx-preview.umd.js pptx-preview pptx-preview.umd.js "*.umd.js"
 cpf html2canvas.min.js html2canvas html2canvas.min.js
+# pdf-lib: used by PowerPoint -> PDF export (pptedit.js loads lib/pdf-lib.min.js)
+cpf pdf-lib.min.js pdf-lib pdf-lib.min.js
+[ -f www/lib/pdf-lib.min.js ] || { echo "::error::pdf-lib.min.js missing (PowerPoint PDF export needs it offline)"; exit 1; }
 # ---- ffmpeg.wasm (converts wma/aif/amr audio inside PowerPoint files to mp3) — optional, only that feature needs it ----
 mkdir -p www/lib/ffmpeg
 for pair in "@ffmpeg/ffmpeg/dist/umd/ffmpeg.js" "@ffmpeg/ffmpeg/dist/umd/814.ffmpeg.js" "@ffmpeg/core/dist/umd/ffmpeg-core.js" "@ffmpeg/core/dist/umd/ffmpeg-core.wasm"; do
@@ -34,6 +36,11 @@ for pair in "@ffmpeg/ffmpeg/dist/umd/ffmpeg.js" "@ffmpeg/ffmpeg/dist/umd/814.ffm
     echo "::error::Required FFmpeg file missing: $pair"
     exit 1
   fi
+done
+# ESM core: needed when ffmpeg runs in a module worker (fallback path in office.js getFF)
+mkdir -p www/lib/ffmpeg/esm
+for f in ffmpeg-core.js ffmpeg-core.wasm; do
+  if [ -s "node_modules/@ffmpeg/core/dist/esm/$f" ]; then cp "node_modules/@ffmpeg/core/dist/esm/$f" "www/lib/ffmpeg/esm/$f"; echo "lib ok: ffmpeg/esm/$f"; else echo "::warning::ESM core missing: $f"; fi
 done
 # the core libs are mandatory
 cd www
