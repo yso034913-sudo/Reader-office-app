@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0f1523"><link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><title>Reader</title>
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="office.css"></head>
+<body>
+<section id="home">
+<div id="hhd"><img src="icon-192.png" alt="" width="44" height="44"><div><h1>Reader</h1><small id="hsub"></small></div><button id="hmn" aria-label="المزيد"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button></div>
+<div id="hmore" hidden>
+<button class="btn" id="bkx">💾 نسخة احتياطية</button>
+<label class="btn">♻️ استرجاع نسخة<input id="bki" type="file" accept=".inkbak" hidden></label>
+</div>
+<div class="tp" data-tab="pdf">
+<label class="btn p big">📄 فتح PDF<input id="fp" type="file" accept="application/pdf,.pdf" hidden></label>
+<div class="trow"><label class="btn">🔗 دمج ملفات PDF<input id="mgf" type="file" accept="application/pdf" multiple hidden></label><button class="btn" id="nn">📝 ملاحظة</button><select id="tpl" aria-label="شكل الورقة"><option value="blank">ورقة بيضاء</option><option value="lines">ورقة سطور</option><option value="grid">ورقة مربعات</option><option value="dots">ورقة نقاط</option></select></div></div>
+<div class="tp" data-tab="ppt" hidden>
+<label class="btn p big">📊 فتح PowerPoint<input id="fop" type="file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden></label>
+<div class="trow"><button class="btn" id="nw-ppt">📊 PowerPoint جديد</button></div></div>
+<div class="tp" data-tab="doc" hidden>
+<label class="btn p big">📝 فتح Word<input id="fod" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden></label>
+<div class="trow"><button class="btn" id="nw-doc">📄 Word جديد</button></div></div>
+<div class="tp" data-tab="xls" hidden>
+<label class="btn p big">📈 فتح Excel<input id="fox" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" hidden></label>
+<div class="trow"><button class="btn" id="nw-xls">📊 Excel جديد</button></div></div>
+<div id="list"></div>
+<nav id="hnav" role="tablist" aria-label="الأقسام"><button data-tab="pdf" role="tab"><i>📄</i><span>PDF</span></button><button data-tab="ppt" role="tab"><i>📊</i><span>PowerPoint</span></button><button data-tab="doc" role="tab"><i>📝</i><span>Word</span></button><button data-tab="xls" role="tab"><i>📈</i><span>Excel</span></button></nav>
+</section>
+<section id="ed" hidden>
+<div id="top"><button id="bk" aria-label="رجوع"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></button><b id="ttl"></b><button id="sq" hidden aria-label="بحث"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button><button id="pb" aria-label="الصفحات"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></button><button id="bm" aria-label="علامة"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg></button><button id="pn" aria-label="رقم الصفحة"></button><button id="ex">⬇ PDF</button><button id="mn" aria-label="المزيد"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button></div>
+<div id="sb" hidden><input id="si" type="search" dir="auto" placeholder="بحث في الملف" enterkeyhint="search"><button id="sp" aria-label="السابق">▲</button><button id="sn" aria-label="التالي">▼</button><span id="cnt"></span><button id="sx" aria-label="إغلاق البحث">✕</button></div>
+<div id="sc"><div id="pgs"></div></div>
+<div id="tb">
+<button data-t="pen" aria-label="قلم"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.4 3.6a2.1 2.1 0 0 1 3 3L7.4 18.6a2 2 0 0 1-.9.5l-2.9.8a.5.5 0 0 1-.6-.6l.8-2.9a2 2 0 0 1 .5-.9z"/></svg></button><button data-t="hl" aria-label="هايلايتر"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg></button><button data-t="er" aria-label="ممحاة"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg></button><button data-t="tx" aria-label="نص"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg></button><label class="ab" aria-label="صورة"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg><input id="imf" type="file" accept="image/*" hidden></label>
+<i class="sep"></i><button id="un" aria-label="تراجع"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button id="re" aria-label="إعادة"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button><i class="sep"></i>
+<button id="tcb" aria-label="اللون والسُمك"><i id="dot"></i></button><button id="ap" hidden aria-label="صفحة جديدة">＋📄</button>
+</div>
+<div id="pc2" class="pop" hidden><h5>اللون</h5><div class="row"><span id="cl" style="display:contents"></span><input id="co" type="color" value="#1e40af"></div><h5>السُمك</h5><input id="wd" type="range" min="1" max="12" value="3"></div>
+<div id="mm" class="pop" hidden>
+<h4>✍ الكتابة</h4><button data-t="mv">✋ تحريك العناصر</button><div class="row"><button data-sh="line">╱ خط</button><button data-sh="rect">▭ مستطيل</button><button data-sh="ell">◯ دائرة</button></div><select id="shs" hidden><option value="line">خط</option><option value="rect">مستطيل</option><option value="ell">دائرة</option></select><button id="m-po">🖐 وضع القلم فقط: إيقاف</button>
+<h4>📚 المذاكرة</h4><button id="m-tm">⏱ مؤقت مذاكرة 25 دقيقة</button>
+<h4>👁 العرض</h4><div class="row" style="direction:ltr"><button id="zo" aria-label="تصغير">－ تصغير</button><button id="zi" aria-label="تكبير">＋ تكبير</button></div><button id="m-nt">🌙 وضع ليلي للـPDF</button><button id="tp"></button>
+</div>
+<div id="pl" hidden><div id="plh"><button data-p="pg" class="on">📄 الصفحات</button><button data-p="bm">⭐ العلامات</button><button data-p="hl">🖍 الهايلايت</button><button id="plx" aria-label="إغلاق">✕</button></div><div id="plb"></div></div>
+<span id="tmr" hidden></span>
+<div id="sa" hidden><div class="sac"></div><button id="cp">📋 نسخ</button><button id="trb">🌐 ترجمة</button></div>
+</section>
+<script>
+(()=>{const Q=[];let cur=null;
+const pump=()=>{if(cur||!Q.length)return;const q=cur=Q.shift(),o=q.o;
+ const w=document.createElement('div');w.className='dlg';
+ w.innerHTML='<div class="dbox" role="dialog" aria-modal="true"><p></p>'+(o.input?'<input type="text" dir="auto" enterkeyhint="done" autocomplete="off">':'')+'<div class="dbt">'+(o.input||o.cancel?'<button class="dc">'+(o.no||'إلغاء')+'</button>':'')+'<button class="do'+(o.danger?' danger':'')+'">'+(o.yes||(o.danger?'حذف':'موافق'))+'</button></div></div>';
+ w.querySelector('p').textContent=q.m;const inp=w.querySelector('input');if(inp)inp.value=o.def||'';
+ const close=v=>{if(cur!==q)return;document.removeEventListener('keydown',kd,true);w.remove();cur=null;q.r(v);pump()};
+ const ok=()=>close(o.input?inp.value:true),no=()=>close(o.input?null:o.cancel?false:true);
+ const kd=e=>{if(e.key==='Escape'){e.preventDefault();no()}else if(e.key==='Enter'&&(inp||e.target.tagName!=='BUTTON')){e.preventDefault();ok()}};
+ w.querySelector('.do').onclick=ok;const c=w.querySelector('.dc');c&&(c.onclick=no);
+ w.addEventListener('pointerdown',e=>{if(e.target===w)no()});
+ document.addEventListener('keydown',kd,true);document.body.append(w);
+ setTimeout(()=>{inp?(inp.focus(),inp.select()):w.querySelector(o.nf&&w.querySelector('.dc')?'.dc':'.do').focus()},60)};
+const dlg=(m,o={})=>new Promise(r=>{Q.push({m:String(m),o,r});pump()});
+window.inkAsk=(m,d)=>dlg(m,{input:1,def:d==null?'':d});
+window.inkConfirm=m=>dlg(m,{cancel:1,danger:/^حذف/.test(String(m))});
+window.inkYN=(m,y,n,nf)=>dlg(m,{cancel:1,yes:y||'نعم',no:n||'لا',nf:nf});
+window.alert=m=>{dlg(m)};
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="app.js"></script>
+<script src="ui.js"></script>
+<script src="office.js"></script>
+<script src="pptedit.js"></script>
+</body></html>

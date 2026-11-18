@@ -1,0 +1,23 @@
+{
+  "name": "reader-android",
+  "version": "3.0.0",
+  "private": true,
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/cli": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/filesystem": "^6.0.0",
+    "@capacitor/share": "^6.0.0",
+    "mammoth": "^1.8.0",
+    "docx-preview": "^0.3.2",
+    "docx": "8.5.0",
+    "exceljs": "^4.4.0",
+    "xlsx": "0.18.5",
+    "hot-formula-parser": "^4.0.0",
+    "pptx-preview": "^1.0.5",
+    "html2canvas": "^1.4.1",
+    "@capacitor/app": "^6.0.0",
+    "@ffmpeg/ffmpeg": "0.12.10",
+    "@ffmpeg/core": "0.12.6"
+  }
+}
