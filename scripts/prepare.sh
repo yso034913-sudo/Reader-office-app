@@ -4,9 +4,6 @@ set -euo pipefail
 rm -rf www && mkdir -p www/lib
 cp index.html app.js ui.js office.js pptedit.js office.css style.css manifest.json icon-192.png icon-512.png icon-maskable-512.png native/native.js www/
 B=https://cdnjs.cloudflare.com/ajax/libs
-curl -fsSL --retry 3 $B/pdf.js/3.11.174/pdf.min.js        -o www/lib/pdf.min.js
-curl -fsSL --retry 3 $B/pdf.js/3.11.174/pdf.worker.min.js -o www/lib/pdf.worker.min.js
-curl -fsSL --retry 3 $B/pdf-lib/1.17.1/pdf-lib.min.js     -o www/lib/pdf-lib.min.js
 # ---- Office libs (from npm) — a missing one only disables that feature; office.js falls back to a CDN ----
 cpf(){ # cpf <dest-name> <pkg-dir> <find-pattern>...
   local dest=$1 pkg=$2; shift 2; local f=""
@@ -33,7 +30,6 @@ for pair in "@ffmpeg/ffmpeg/dist/umd/ffmpeg.js" "@ffmpeg/ffmpeg/dist/umd/814.ffm
   if [ -f "node_modules/$pair" ]; then cp "node_modules/$pair" "www/lib/ffmpeg/$(basename "$pair")"; echo "lib ok: ffmpeg/$(basename "$pair")"; else echo "::warning::lib missing: $pair"; fi
 done
 # the core libs are mandatory
-test -s www/lib/pdf.min.js && test -s www/lib/pdf.worker.min.js && test -s www/lib/pdf-lib.min.js
 cd www
 # point the app at the local copies and drop the service worker (the APK already contains the files)
 sed -i "s#https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/#lib/#g; s#https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/#lib/#g" index.html app.js
@@ -41,5 +37,4 @@ sed -i "s#^if('serviceWorker'in navigator.*register('sw.js').*;\$##" app.js
 if grep -q "register('sw.js')" app.js; then echo "service worker removal failed"; exit 1; fi
 sed -i 's#<script src="ui.js"></script>#<script src="ui.js"></script><script src="native.js"></script>#' index.html
 grep -q 'native.js' index.html || { echo "native.js injection failed"; exit 1; }
-grep -q 'lib/pdf.min.js' index.html || { echo "pdf.js rewrite failed"; exit 1; }
 du -sh .; echo "www ready"
