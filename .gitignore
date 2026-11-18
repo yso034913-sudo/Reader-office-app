@@ -1,7 +1,7 @@
 node_modules/
 www/
 android/
-Reader.apk
+ReaderAll.apk
 .DS_Store
 
 # Local secrets and signing keys

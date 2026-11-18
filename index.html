@@ -2,21 +2,19 @@
 <html lang="ar" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0f1523"><link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><title>Reader</title>
+<link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><title>Reader All</title>
 <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="office.css"></head>
 <body>
 <section id="home">
-<div id="hhd"><img src="icon-192.png" alt="" width="44" height="44"><div><h1>Reader</h1><small id="hsub"></small></div><button id="hmn" aria-label="المزيد"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button></div>
+<div id="hhd"><img src="icon-192.png" alt="" width="44" height="44"><div><h1>Reader All</h1><small id="hsub"></small></div><button id="hmn" aria-label="المزيد"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button></div>
 <div id="hmore" hidden>
 <button class="btn" id="bkx">💾 نسخة احتياطية</button>
+<label class="btn">🎧 تحويل صوت (WMA…) لـ MP3<input id="fcv" type="file" accept="audio/*,video/*,.wma,.wmv,.asf,.amr,.aif,.aiff,.flac,.ogg,.opus,.aac,.m4a,.wav,.mid,.midi" multiple hidden></label>
 <label class="btn">♻️ استرجاع نسخة<input id="bki" type="file" accept=".inkbak" hidden></label>
 </div>
-<div class="tp" data-tab="pdf">
-<label class="btn p big">📄 فتح PDF<input id="fp" type="file" accept="application/pdf,.pdf" hidden></label>
-<div class="trow"><label class="btn">🔗 دمج ملفات PDF<input id="mgf" type="file" accept="application/pdf" multiple hidden></label><button class="btn" id="nn">📝 ملاحظة</button><select id="tpl" aria-label="شكل الورقة"><option value="blank">ورقة بيضاء</option><option value="lines">ورقة سطور</option><option value="grid">ورقة مربعات</option><option value="dots">ورقة نقاط</option></select></div></div>
-<div class="tp" data-tab="ppt" hidden>
+<div class="tp" data-tab="ppt">
 <label class="btn p big">📊 فتح PowerPoint<input id="fop" type="file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden></label>
-<div class="trow"><button class="btn" id="nw-ppt">📊 PowerPoint جديد</button></div></div>
+<div class="trow"><button class="btn" id="nw-ppt">📊 PowerPoint جديد</button><label class="btn">🎧 تحويل صوت لـ MP3<input id="fcv2" type="file" accept="audio/*,video/*,.wma,.wmv,.asf,.amr,.aif,.aiff,.flac,.ogg,.opus,.aac,.m4a,.wav,.mid,.midi" multiple hidden></label></div></div>
 <div class="tp" data-tab="doc" hidden>
 <label class="btn p big">📝 فتح Word<input id="fod" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden></label>
 <div class="trow"><button class="btn" id="nw-doc">📄 Word جديد</button></div></div>
@@ -24,7 +22,7 @@
 <label class="btn p big">📈 فتح Excel<input id="fox" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" hidden></label>
 <div class="trow"><button class="btn" id="nw-xls">📊 Excel جديد</button></div></div>
 <div id="list"></div>
-<nav id="hnav" role="tablist" aria-label="الأقسام"><button data-tab="pdf" role="tab"><i>📄</i><span>PDF</span></button><button data-tab="ppt" role="tab"><i>📊</i><span>PowerPoint</span></button><button data-tab="doc" role="tab"><i>📝</i><span>Word</span></button><button data-tab="xls" role="tab"><i>📈</i><span>Excel</span></button></nav>
+<nav id="hnav" role="tablist" aria-label="الأقسام"><button data-tab="ppt" role="tab"><i>📊</i><span>PowerPoint</span></button><button data-tab="doc" role="tab"><i>📝</i><span>Word</span></button><button data-tab="xls" role="tab"><i>📈</i><span>Excel</span></button></nav>
 </section>
 <section id="ed" hidden>
 <div id="top"><button id="bk" aria-label="رجوع"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></button><b id="ttl"></b><button id="sq" hidden aria-label="بحث"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button><button id="pb" aria-label="الصفحات"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></button><button id="bm" aria-label="علامة"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg></button><button id="pn" aria-label="رقم الصفحة"></button><button id="ex">⬇ PDF</button><button id="mn" aria-label="المزيد"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button></div>
@@ -65,8 +63,6 @@ window.inkYN=(m,y,n,nf)=>dlg(m,{cancel:1,yes:y||'نعم',no:n||'لا',nf:nf});
 window.alert=m=>{dlg(m)};
 })();
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="app.js"></script>
 <script src="ui.js"></script>
 <script src="office.js"></script>

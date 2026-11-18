@@ -1,9 +1,9 @@
-// Reader — Office module (Word / Excel / PowerPoint). Loaded after plus.js.
+// Reader All — Office module (Word / Excel / PowerPoint). Loaded after plus.js.
 (()=>{
 'use strict';
 const $=s=>document.querySelector(s),E=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
 const KIND={doc:'Word',xls:'Excel',ppt:'PowerPoint'};
-window.inkKind=d=>KIND[d.k]||(d.k==='pdf'?'PDF':'ملاحظة');
+window.inkKind=d=>KIND[d.k]||'ملف';
 
 // ---------- lazy library loader (local lib/ first, CDN fallback) ----------
 const LIB={
@@ -21,6 +21,7 @@ const G={};let LQ=Promise.resolve();
 const scr=src=>new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>{s.remove();no(new Error('load '+src))};document.head.append(s)});
 function need(k){const p=LQ.then(async()=>{if(G[k])return G[k];const L=LIB[k];try{window[L.g]=undefined}catch(e){}
  try{await scr('lib/'+L.f)}catch(e){await scr(L.c)}
+ if(!window[L.g]){try{await scr(L.c)}catch(e){}}
  G[k]=window[L.g];if(!G[k])throw new Error('المكتبة '+k+' ما اتحمّلتش');return G[k]});
  LQ=p.catch(()=>{});return p}
 
@@ -78,8 +79,28 @@ async function importFile(f){
   const d=await createRec(k,baseName(f.name),buf);busy(false);openOffice(d)}catch(e){fail('تعذر استيراد الملف',e)}}
 window.inkImportOffice=importFile;
 function wire(id,fn){const b=document.getElementById(id);b&&(b.onclick=fn)}
-wire('nw-doc',async()=>{try{const dx=await need('dx');const doc=new dx.Document({sections:[{children:[new dx.Paragraph({})]}]});const buf=await (await dx.Packer.toBlob(doc)).arrayBuffer();
- const d=await createRec('doc','مستند '+new Date().toLocaleDateString('ar-EG'),buf,1);openOffice(d,{edit:1,newDoc:1})}catch(e){fail('تعذر إنشاء المستند',e)}});
+// blank .docx / .xlsx written by hand (no library download needed, instant)
+function zipStore(files){const te=new TextEncoder(),parts=[],cd=[];let off=0;
+ for(const [nm,txt] of files){const nb=te.encode(nm),d=te.encode(txt),crc=crc32(d),h=new DataView(new ArrayBuffer(30)),c=new DataView(new ArrayBuffer(46));
+  h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(10,0,true);h.setUint16(12,0x21,true);h.setUint32(14,crc,true);h.setUint32(18,d.length,true);h.setUint32(22,d.length,true);h.setUint16(26,nb.length,true);
+  c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint16(12,0,true);c.setUint16(14,0x21,true);c.setUint32(16,crc,true);c.setUint32(20,d.length,true);c.setUint32(24,d.length,true);c.setUint16(28,nb.length,true);c.setUint32(42,off,true);
+  parts.push(new Uint8Array(h.buffer),nb,d);cd.push(new Uint8Array(c.buffer),nb);off+=30+nb.length+d.length}
+ let n=0;cd.forEach(x=>n+=x.length);const e=new DataView(new ArrayBuffer(22)),k=cd.length/2;
+ e.setUint32(0,0x06054b50,true);e.setUint16(8,k,true);e.setUint16(10,k,true);e.setUint32(12,n,true);e.setUint32(16,off,true);
+ return new Blob([...parts,...cd,new Uint8Array(e.buffer)]).arrayBuffer()}
+const XH='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n',RELNS='http://schemas.openxmlformats.org/package/2006/relationships',ODR='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+const blankDocx=()=>zipStore([
+ ['[Content_Types].xml',XH+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'],
+ ['_rels/.rels',XH+'<Relationships xmlns="'+RELNS+'"><Relationship Id="rId1" Type="'+ODR+'/officeDocument" Target="word/document.xml"/></Relationships>'],
+ ['word/document.xml',XH+'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p/><w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>']]);
+const blankXlsx=()=>zipStore([
+ ['[Content_Types].xml',XH+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>'],
+ ['_rels/.rels',XH+'<Relationships xmlns="'+RELNS+'"><Relationship Id="rId1" Type="'+ODR+'/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+ ['xl/workbook.xml',XH+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="'+ODR+'"><sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>'],
+ ['xl/_rels/workbook.xml.rels',XH+'<Relationships xmlns="'+RELNS+'"><Relationship Id="rId1" Type="'+ODR+'/worksheet" Target="worksheets/sheet1.xml"/></Relationships>'],
+ ['xl/worksheets/sheet1.xml',XH+'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData/></worksheet>']]);
+wire('nw-doc',async()=>{try{busy(true,'جاري إنشاء المستند…');const buf=await blankDocx();
+ const d=await createRec('doc','مستند '+new Date().toLocaleDateString('ar-EG'),buf,1);busy(false);openOffice(d,{edit:1,newDoc:1})}catch(e){fail('تعذر إنشاء المستند',e)}});
 // ---------- new blank PowerPoint (built from scratch: 16:9, one title slide) ----------
 function pptNew(){
  const H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n',te=new TextEncoder(),
@@ -93,7 +114,7 @@ function pptNew(){
   fill3=t=>t.repeat(3),sf='<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>',
   clrs=[['dk2','44546A'],['lt2','E7E6E6'],['accent1','4472C4'],['accent2','ED7D31'],['accent3','A5A5A5'],['accent4','FFC000'],['accent5','5B9BD5'],['accent6','70AD47'],['hlink','0563C1'],['folHlink','954F72']],
   font='<a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/>',
-  theme=H+'<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Reader"><a:themeElements><a:clrScheme name="Reader"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1>'+clrs.map(c=>'<a:'+c[0]+'><a:srgbClr val="'+c[1]+'"/></a:'+c[0]+'>').join('')+'</a:clrScheme><a:fontScheme name="Reader"><a:majorFont>'+font+'</a:majorFont><a:minorFont>'+font+'</a:minorFont></a:fontScheme><a:fmtScheme name="Reader"><a:fillStyleLst>'+fill3(sf)+'</a:fillStyleLst><a:lnStyleLst>'+fill3('<a:ln w="6350">'+sf+'</a:ln>')+'</a:lnStyleLst><a:effectStyleLst>'+fill3('<a:effectStyle><a:effectLst/></a:effectStyle>')+'</a:effectStyleLst><a:bgFillStyleLst>'+fill3(sf)+'</a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>',
+  theme=H+'<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Reader All"><a:themeElements><a:clrScheme name="Reader All"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1>'+clrs.map(c=>'<a:'+c[0]+'><a:srgbClr val="'+c[1]+'"/></a:'+c[0]+'>').join('')+'</a:clrScheme><a:fontScheme name="Reader"><a:majorFont>'+font+'</a:majorFont><a:minorFont>'+font+'</a:minorFont></a:fontScheme><a:fmtScheme name="Reader"><a:fillStyleLst>'+fill3(sf)+'</a:fillStyleLst><a:lnStyleLst>'+fill3('<a:ln w="6350">'+sf+'</a:ln>')+'</a:lnStyleLst><a:effectStyleLst>'+fill3('<a:effectStyle><a:effectLst/></a:effectStyle>')+'</a:effectStyleLst><a:bgFillStyleLst>'+fill3(sf)+'</a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>',
   master=H+'<p:sldMaster '+PN+'><p:cSld><p:bg><p:bgRef idx="1001"><a:schemeClr val="bg1"/></p:bgRef></p:bg><p:spTree>'+grp+'</p:spTree></p:cSld><p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/><p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst><p:txStyles><p:titleStyle><a:lvl1pPr><a:defRPr sz="4400"/></a:lvl1pPr></p:titleStyle><p:bodyStyle><a:lvl1pPr><a:defRPr sz="2800"/></a:lvl1pPr></p:bodyStyle><p:otherStyle><a:lvl1pPr><a:defRPr sz="1800"/></a:lvl1pPr></p:otherStyle></p:txStyles></p:sldMaster>',
   layout=H+'<p:sldLayout '+PN+' type="blank" preserve="1"><p:cSld name="Blank"><p:spTree>'+grp+'</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>',
   slide=H+'<p:sld '+PN+'><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="1E3A8A"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree>'+grp
@@ -111,7 +132,7 @@ function pptNew(){
   ['ppt/slides/slide1.xml',slide],['ppt/slides/_rels/slide1.xml.rels',rels([['slideLayout','../slideLayouts/slideLayout1.xml']])],['ppt/theme/theme1.xml',theme]].map(([k,v])=>[k,te.encode(v)]));
  return zipBuild({m:{}},new Set(),put).arrayBuffer()}
 wire('nw-ppt',async()=>{try{const buf=await pptNew(),d=await createRec('ppt','عرض '+new Date().toLocaleDateString('ar-EG'),buf,1);openOffice(d,{edit:1})}catch(e){fail('تعذر إنشاء العرض',e)}});
-wire('nw-xls',async()=>{try{const buf=await xlsBuild({sheets:[newSheet('Sheet1')]});const d=await createRec('xls','جدول '+new Date().toLocaleDateString('ar-EG'),buf,1);openOffice(d)}catch(e){fail('تعذر إنشاء الجدول',e)}});
+wire('nw-xls',async()=>{try{busy(true,'جاري إنشاء الجدول…');const buf=await blankXlsx();const d=await createRec('xls','جدول '+new Date().toLocaleDateString('ar-EG'),buf,1);busy(false);openOffice(d)}catch(e){fail('تعذر إنشاء الجدول',e)}});
 
 // ---------- PDF export (raster pages) ----------
 const AR=/[\u0590-\u08FF\uFB1D-\uFEFF]/;
@@ -134,11 +155,11 @@ async function wordView(){
  const dp=await need('dp');$('#ofm').className='ofscroll';$('#ofm').innerHTML='<div class="ofw"></div>';const w=$('#ofm').firstChild;
  await dp.renderAsync(O.buf.slice(0),w,null,{inWrapper:true,breakPages:true,useBase64URL:true,renderHeaders:true,renderFooters:true,ignoreLastRenderedPageBreak:false});
  const secs=[...w.querySelectorAll('section.docx')],mw=Math.max(1,...secs.map(s=>s.offsetWidth));O.z=Math.min(1,($('#ofm').clientWidth-8)/mw);w.style.zoom=O.z;O.w=w;
- setBar([{t:'✏️ تعديل',f:()=>openOffice(O.d,{edit:1})},{t:'⬇ DOCX',f:()=>dl(new Blob([O.buf],{type:MIME.doc}),O.d.n+'.docx')},{t:'⬇ PDF',f:async()=>{try{busy(true,'جاري تحويل PDF…');const b=await withZoom(w,()=>elsToPdf(secs));busy(false);dl(b,O.d.n+'.pdf')}catch(e){fail('فشل التصدير',e)}}},'|',...zoomBtns(()=>w)])}
+ setBar([{t:'✏️ تعديل',f:()=>openOffice(O.d,{edit:1})},{t:'⬇ DOCX',f:()=>dl(new Blob([O.buf],{type:MIME.doc}),O.d.n+'.docx')},'|',...zoomBtns(()=>w)])}
 
 async function wordEdit(){
- const mm=await need('mammoth'),dx=await need('dx');let html='<p><br></p>';
- if(!O.opt.newDoc){const r=await mm.convertToHtml({arrayBuffer:O.buf.slice(0)},{convertImage:mm.images.dataUri});html=r.value||html;toast('وضع التعديل بيبسّط التنسيق. حفظك هيتعمل كنسخة جديدة.')}
+ let html='<p><br></p>';
+ if(!O.opt.newDoc){const mm=await need('mammoth');const r=await mm.convertToHtml({arrayBuffer:O.buf.slice(0)},{convertImage:mm.images.dataUri});html=r.value||html;toast('وضع التعديل بيبسّط التنسيق. حفظك هيتعمل كنسخة جديدة.')}
  O.newDoc=!!O.opt.newDoc;$('#ofm').className='ofscroll';$('#ofm').innerHTML='<div class="ofpg"><div id="oed" contenteditable="true" spellcheck="false"></div></div>';
  const ed=$('#oed');ed.innerHTML=html;ed.addEventListener('input',()=>O.dirty=1);
  let rg=null;document.addEventListener('selectionchange',O.sc=()=>{const s=getSelection();if(s.rangeCount&&ed.contains(s.anchorNode))rg=s.getRangeAt(0).cloneRange()});
@@ -154,18 +175,19 @@ async function wordEdit(){
  const img=()=>{const i=E('input');i.type='file';i.accept='image/*';i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{restore();document.execCommand('insertHTML',false,'<img src="'+r.result+'" style="max-width:100%">');O.dirty=1};r.readAsDataURL(f)};i.click()};
  const dir=d=>()=>{const b=blockOf();if(!b)return;b.setAttribute('dir',d);b.style.textAlign=d==='rtl'?'right':'left';O.dirty=1};
  setBar([
-  {t:'💾',title:'حفظ',f:save},{t:'⬇ DOCX',f:async()=>{await save(1)}},{t:'⬇ PDF',f:pdf},'|',
+  {t:'💾',title:'حفظ',f:save},{t:'⬇ DOCX',f:async()=>{await save(1)}},'|',
   {t:'↶',f:ex('undo'),title:'تراجع'},{t:'↷',f:ex('redo'),title:'إعادة'},'|',
   {t:'<b>B</b>',f:ex('bold')},{t:'<i>I</i>',f:ex('italic')},{t:'<u>U</u>',f:ex('underline')},{t:'<s>S</s>',f:ex('strikeThrough')},'|',
   sel(FONTS,'الخط',v=>{restore();document.execCommand('fontName',false,v);O.dirty=1}),
   sel(SIZES,'الحجم',v=>{restore();document.execCommand('fontSize',false,'7');ed.querySelectorAll('font[size="7"]').forEach(f=>{f.removeAttribute('size');f.style.fontSize=v+'pt'});O.dirty=1}),
-  col('A لون','foreColor'),col('🖍 تظليل','hiliteColor'),'|',
+  (()=>{const n=E('input');n.type='number';n.min=1;n.max=999;n.step=1;n.inputMode='numeric';n.placeholder='حجم';n.title='حجم الخط بالرقم (pt)';n.style.cssText='flex:none;width:64px;padding:6px 6px;font-size:14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);text-align:center';const ap=()=>{const v=+n.value;if(!(v>0))return;restore();document.execCommand('fontSize',false,'7');ed.querySelectorAll('font[size="7"]').forEach(f=>{f.removeAttribute('size');f.style.fontSize=Math.min(999,v)+'pt'});O.dirty=1};n.onchange=ap;n.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();ap()}};return {el:n}})(),
+  col('A لون','foreColor'),col('🖍 تظليل','hiliteColor'),colorBtn({label:'▦ لون الخلية',title:'لون الخلية الحالية',init:'#FFF2CC',onPick:c=>{restore();const n=getSelection().anchorNode,el=n&&(n.nodeType===1?n:n.parentElement),td=el&&el.closest&&el.closest('td,th');if(!td||!ed.contains(td)){alert('اضغط جوه خلية في الجدول الأول.');return}td.style.background=c;O.dirty=1}}),'|',
   {t:'⬅',f:ex('justifyLeft'),title:'يسار'},{t:'↔',f:ex('justifyCenter'),title:'وسط'},{t:'➡',f:ex('justifyRight'),title:'يمين'},{t:'☰',f:ex('justifyFull'),title:'ضبط'},
   {t:'RTL',f:dir('rtl')},{t:'LTR',f:dir('ltr')},'|',
   {t:'• قائمة',f:ex('insertUnorderedList')},{t:'1. قائمة',f:ex('insertOrderedList')},
   sel(['عنوان 1','عنوان 2','عنوان 3','فقرة'],'النمط',v=>{restore();document.execCommand('formatBlock',false,{'عنوان 1':'H1','عنوان 2':'H2','عنوان 3':'H3','فقرة':'P'}[v]);O.dirty=1}),'|',
   {t:'▦ جدول',f:tbl},{t:'🖼 صورة',f:img}]);
- async function save(dlOnly){try{busy(true,'جاري الحفظ…');const blob=await htmlToDocx(dx,ed),buf=await blob.arrayBuffer();await saveBuf(buf);busy(false);if(dlOnly===1)dl(new Blob([buf],{type:MIME.doc}),O.d.n+'.docx');else toast('اتحفظ ✅')}catch(e){fail('فشل الحفظ',e)}}
+ async function save(dlOnly){try{busy(true,'جاري الحفظ…');const dx=await need('dx');const blob=await htmlToDocx(dx,ed),buf=await blob.arrayBuffer();await saveBuf(buf);busy(false);if(dlOnly===1)dl(new Blob([buf],{type:MIME.doc}),O.d.n+'.docx');else toast('اتحفظ ✅')}catch(e){fail('فشل الحفظ',e)}}
  async function pdf(){try{busy(true,'جاري تحويل PDF…');const box=E('div','ofprint');box.innerHTML=ed.innerHTML;document.body.append(box);const b=await longToPdf(box,1.4142);box.remove();busy(false);dl(b,O.d.n+'.pdf')}catch(e){fail('فشل التصدير',e)}}
  O.cleanup=()=>document.removeEventListener('selectionchange',O.sc)}
 
@@ -413,7 +435,7 @@ function xbar(){
  const nfs={'عام':'General','رقم 0.00':'0.00','1,234':'#,##0','1,234.00':'#,##0.00','نسبة %':'0.00%','تاريخ':'yyyy-mm-dd','dd/mm/yyyy':'dd/mm/yyyy','نص':'@','عملة $':'"$"#,##0.00'};
  const nf=E('select');nf.innerHTML='<option value="">التنسيق</option>'+Object.keys(nfs).map(k=>'<option>'+k+'</option>').join('');nf.onchange=()=>{if(nf.value){const v=nfs[nf.value];setS('nf',v==='General'?null:v);nf.value=''}};
  const xcol=(ph,key)=>colorBtn({label:ph,title:key==='bg'?'لون الخلفية':'لون الخط',init:key==='bg'?'#FFFF00':'#FF0000',onPick:c=>setS(key,c)});
- setBar([{t:'💾',title:'حفظ',f:xsave},{t:'⬇ XLSX',f:()=>xsave(1)},{t:'⬇ PDF',f:xpdf},'|',
+ setBar([{t:'💾',title:'حفظ',f:xsave},{t:'⬇ XLSX',f:()=>xsave(1)},'|',
   {t:'↶',f:undo,title:'تراجع'},{t:'↷',f:redo,title:'إعادة'},'|',
   {t:'<b>B</b>',f:()=>tog('b')},{t:'<i>I</i>',f:()=>tog('i')},{t:'<u>U</u>',f:()=>tog('u')},xcol('A لون','c'),xcol('🎨 خلفية','bg'),
   {t:'⬅',f:()=>setS('al','left')},{t:'↔',f:()=>setS('al','center')},{t:'➡',f:()=>setS('al','right')},{t:'⏎ التفاف',f:()=>tog('w')},{t:'▦ حدود',f:()=>tog('bd')},{el:nf},'|',
@@ -515,6 +537,15 @@ async function toMp3(bytes,ext){const ff=await getFF(),i='in.'+(ext||'bin'),o='o
  try{const rc=await ff.exec(['-y','-i',i,'-vn','-map_metadata','-1','-c:a','libmp3lame','-q:a','4',o]);if(rc!==0)throw new Error('ffmpeg رجّع '+rc);return new Uint8Array(await ff.readFile(o))}
  finally{try{await ff.deleteFile(i)}catch(e){}try{await ff.deleteFile(o)}catch(e){}}}
 
+// ----- standalone: pick audio/video files -> mp3 -> save/share -----
+['fcv','fcv2'].forEach(id=>{const el=document.getElementById(id);el&&(el.onchange=async e=>{const fs=[...e.target.files];e.target.value='';
+ for(let i=0;i<fs.length;i++){const f=fs[i];
+  try{busy(true,'جاري تحويل '+(fs.length>1?(i+1)+' من '+fs.length+': ':'')+f.name+'… (أول مرة بتاخد وقت)');
+   const d=await toMp3(await f.arrayBuffer(),extOf(f.name)||'bin');busy(false);
+   dl(new Blob([d],{type:'audio/mpeg'}),f.name.replace(/\.[^.]+$/,'')+'.mp3');toast('اتحوّل: '+f.name);
+   if(i<fs.length-1)await new Promise(r=>setTimeout(r,1500))}
+  catch(err){fail('فشل تحويل '+f.name,err);break}}})});
+
 // writes a new zip: copies untouched entries byte-for-byte, drops `del`, adds/replaces `put`
 function zipBuild(z,del,put){const parts=[],cd=[],te=new TextEncoder();let off=0;
  const add=(nm,tm,dt,fl,cm,crc,cs,us,raw)=>{const nb=te.encode(nm),h=new DataView(new ArrayBuffer(30)),c=new DataView(new ArrayBuffer(46));
@@ -572,7 +603,8 @@ async function mpPlay(m){
  if(m.external||!m.path)return toast('الملف ده مربوط من برّه العرض ومش موجود جواه'+(m.file?': '+m.file:''));
  const r=mpUI();mpStop();const tk=MP.tk;
  try{let d,mime=m.mime;
-  if(MP.cv.has(m.path)){d=MP.cv.get(m.path);mime='audio/mpeg'}
+  if(m.data){d=m.data}
+  else if(MP.cv.has(m.path)){d=MP.cv.get(m.path);mime='audio/mpeg'}
   else{if(m.size>8e6)busy(true,'جاري تجهيز الملف…');d=await zipRead(MP.z,m.path);busy(false);if(tk!==MP.tk)return;
    if(needConv(m)&&await inkYN('صيغة ‎.'+m.ext+'‎ مش مدعومة على الجهاز. أحوّلها لـ mp3 وأشغّلها؟','حوّل وشغّل','شغّل زي ما هي')){
     try{busy(true,'جاري التحويل لـ mp3… (أول مرة بتاخد وقت)');d=await toMp3(d,m.ext);MP.cv.set(m.path,d);mime='audio/mpeg'}
@@ -609,11 +641,11 @@ async function pptMediaSetup(w,slideEls){
 
 async function pptView(){const pv=await need('pp');$('#ofm').className='ofscroll';$('#ofm').innerHTML='<div class="ofw ppt"></div>';const w=$('#ofm').firstChild;
  let ar=16/9;try{const x=await zipText(O.buf,'ppt/presentation.xml'),m=/<p:sldSz[^>]*\bcx="(\d+)"[^>]*\bcy="(\d+)"/.exec(x);if(m)ar=+m[1]/+m[2]}catch(e){}
- const W=Math.max(300,$('#ofm').clientWidth-16),H=Math.round(W/ar);
+ const W=Math.max(300,$('#ofm').clientWidth),H=Math.round(W/ar);
  const p=pv.init(w,{width:W,height:H});await p.preview(O.buf.slice(0));O.w=w;
  const slides=()=>{let s=[...w.querySelectorAll('.pptx-preview-slide-wrapper')];if(!s.length)s=[...w.querySelectorAll('[class*="slide-wrapper"]')];return s};
  const mbtn=await pptMediaSetup(w,slides);
- setBar([{t:'▶ تشغيل',f:()=>window.pptPlay&&window.pptPlay()},{t:'✏️ تعديل',f:()=>window.pptEdit&&window.pptEdit()},{t:'⬇ PPTX',f:()=>dl(new Blob([O.buf],{type:MIME.ppt}),O.d.n+'.pptx')},{t:'⬇ PDF',f:async()=>{try{const s=slides();if(!s.length)return alert('مفيش شرايح اتعرضت.');busy(true,'جاري تحويل PDF…');w.classList.add('mpx');let b;try{b=await withZoom(w,()=>elsToPdf(s))}finally{w.classList.remove('mpx')}busy(false);dl(b,O.d.n+'.pdf')}catch(e){fail('فشل التصدير',e)}}},'|',...zoomBtns(()=>w),...mbtn])}
+ setBar([{t:'▶ تشغيل',f:()=>window.pptPlay&&window.pptPlay()},{t:'✏️ تعديل',f:()=>window.pptEdit&&window.pptEdit()},{t:'⬇ PPTX',f:()=>dl(new Blob([O.buf],{type:MIME.ppt}),O.d.n+'.pptx')},'|',...zoomBtns(()=>w),...mbtn])}
 
 // ---------- منتقي الألوان (ألوان الثيم + قياسية + آخر المستخدمة) ----------
 /*CP-START*/
@@ -650,5 +682,5 @@ function colorBtn(opt){
   p.style.top=(r.bottom+6+h>innerHeight?Math.max(6,r.top-h-6):r.bottom+6)+'px'};
  return {el:b}}
 /*CP-END*/
-window.__of={colorBtn,zipIndex,zipRead,zipBuild,setBar,dl,toast,busy,fail,back,O:()=>O,saveBuf,saveMeta:async x=>{const d=O&&O.d;if(d&&d.own){Object.assign(d,x);await dbPut(d)}},media:{init:async buf=>{const sc=await pptMediaScan(buf);MP.z=sc.z;MP.items=sc.items;return sc},play:mpPlay,list:mpList,close:()=>{mpClose();MP.z=null;MP.items=[];MP.cv.clear()}}};
+window.__of={colorBtn,zipIndex,zipRead,zipBuild,setBar,dl,toast,busy,fail,back,O:()=>O,saveBuf,saveMeta:async x=>{const d=O&&O.d;if(d&&d.own){Object.assign(d,x);await dbPut(d)}},media:{init:async buf=>{const sc=await pptMediaScan(buf);MP.z=sc.z;MP.items=sc.items;return sc},play:mpPlay,list:mpList,add:m=>{MP.items.push(m)},close:()=>{mpClose();MP.z=null;MP.items=[];MP.cv.clear()}}};
 })();

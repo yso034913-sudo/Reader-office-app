@@ -1,4 +1,4 @@
-/* Reader — base styles */
+/* Reader All — base styles */
 :root{--bg:#0f1523;--desk:#0b101c;--bar:#151d30;--card:#1d273d;--line:#2a3652;--fg:#e9eef8;--fg2:#97a3bd;--acc:#2f5fe0;--hl:#f2c14e;--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}

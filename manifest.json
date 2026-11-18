@@ -1,6 +1,6 @@
 {
- "name": "Reader",
- "short_name": "Reader",
+ "name": "Reader All",
+ "short_name": "Reader All",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",

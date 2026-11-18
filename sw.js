@@ -1,8 +1,8 @@
-// Reader service worker (web/PWA only — the APK ships its files and skips this).
+// Reader All service worker (web/PWA only — the APK ships its files and skips this).
 // Bump V when you want to force every cache to be rebuilt.
-const V='reader-v47';
+const V='reader-all-v55';
 const CORE=['./','index.html','app.js','ui.js','office.js','pptedit.js','office.css','style.css','manifest.json','icon-192.png','icon-512.png','icon-maskable-512.png'];
-const CDN=['https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js','https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js','https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js'];
+const CDN=[];
 self.addEventListener('install',e=>{e.waitUntil((async()=>{const c=await caches.open(V);
  await Promise.all([...CORE.map(u=>c.add(u).catch(()=>{})),...CDN.map(u=>c.add(new Request(u,{mode:'cors'})).catch(()=>{}))]);
  self.skipWaiting()})())});

@@ -1,4 +1,4 @@
-// Reader — UI glue. Loaded after app.js (uses its globals: S, sync, mkHl, hs, tx, dbPut, home, openDoc).
+// Reader All — UI glue. Loaded after app.js (uses its globals: S, sync, mkHl, hs, tx, dbPut, home, openDoc).
 (()=>{
 'use strict';
 const $=s=>document.querySelector(s),E=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};

@@ -1,4 +1,4 @@
-/* Reader — Office module styles */
+/* Reader All — Office module styles */
 #of{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;background:var(--desk);direction:ltr}
 #of[hidden]{display:none}
 #oft{display:flex;align-items:center;gap:8px;padding:calc(4px + env(safe-area-inset-top)) 8px 4px;background:var(--bar)}
@@ -13,7 +13,9 @@
 #ofm{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 #ofm.ofscroll{display:block;overflow:auto;touch-action:pan-x pan-y}
 .ofw{width:max-content;min-width:100%}
-.ofw.ppt{padding:8px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.ofw.ppt{padding:0;display:flex;flex-direction:column;align-items:center;gap:0}
+.ofw.ppt .pptx-preview-wrapper{padding:0!important;margin:0!important;background:transparent!important;height:auto!important;overflow:visible!important}
+.ofw.ppt .pptx-preview-slide-wrapper{margin:0!important;box-shadow:none!important}
 .ofpg{width:min(100%,794px);margin:8px auto;background:#fff;color:#000;box-shadow:0 2px 8px #0008;min-height:70vh}
 #oed{padding:28px 24px;min-height:70vh;outline:none;font:16px/1.55 Calibri,Arial,sans-serif;color:#000;background:#fff;word-break:break-word}
 #oed p,#oed div,#oed li,#oed h1,#oed h2,#oed h3,#oed h4,#oed td,#oed th,#oed blockquote{unicode-bidi:plaintext;text-align:start}

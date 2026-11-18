@@ -1,7 +1,6 @@
 (()=>{const sh=m=>{let d=document.getElementById('err');if(!d){d=document.createElement('div');d.id='err';d.style.cssText='position:fixed;left:0;right:0;top:0;z-index:99;background:#b91c1c;color:#fff;font:12px monospace;padding:6px 8px;direction:ltr;white-space:pre-wrap';d.onclick=()=>d.remove();document.body.append(d)}d.textContent='خطأ (اضغط للإخفاء): '+m};
 addEventListener('error',e=>sh(e.message+' @'+(e.lineno||'')));addEventListener('unhandledrejection',e=>sh(String(e.reason&&e.reason.message||e.reason)))})();
 const $=s=>document.querySelector(s),E=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
-pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const DB=new Promise((r,no)=>{const q=indexedDB.open('inkpad',1);q.onupgradeneeded=()=>{q.result.createObjectStore('d',{keyPath:'id'});q.result.createObjectStore('f')};q.onsuccess=()=>r(q.result);q.onerror=()=>{alert('تعذر فتح قاعدة البيانات. لو بتستخدم تصفح خفي جرّب وضع عادي.');no(q.error)};q.onblocked=()=>alert('اقفل أي نافذة تانية مفتوحة من InkPad وحاول تاني')});
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 const tx=async(st,m,f)=>{const db=await DB;return new Promise((ok,no)=>{const t=db.transaction(st,m),r=f(t.objectStore(st));t.oncomplete=()=>ok(r&&r.result);t.onerror=()=>no(t.error);t.onabort=()=>no(t.error||new Error('abort'))})};
@@ -17,8 +16,8 @@ inkSort=(x,y)=>{const o=SO(),z=SZ();return o==='n'?String(x.n).localeCompare(Str
 async function bfill(a){if(S.bf)return;const m=SZ(),todo=a.filter(d=>d.k==='pdf'&&m[d.id]===undefined);if(!todo.length)return;S.bf=1;
  for(const d of todo){try{const b=await tx('f','readonly',s=>s.get(d.id));m[d.id]=b?b.byteLength:0}catch(e){m[d.id]=0}}
  try{localStorage.setItem('inksz',JSON.stringify(m))}catch(e){}S.bf=0;home()}
-const TABK={pdf:['pdf','note'],ppt:['ppt'],doc:['doc'],xls:['xls']},TABM={pdf:'لسه مفيش ملفات PDF. افتح ملف أو اعمل ملاحظة جديدة.',ppt:'لسه مفيش عروض PowerPoint. افتح ملف .pptx.',doc:'لسه مفيش مستندات Word. افتح ملف .docx أو اعمل مستند جديد.',xls:'لسه مفيش جداول Excel. افتح ملف أو اعمل جدول جديد.'};
-let TAB=(()=>{try{const t=localStorage.getItem('inktab');return TABK[t]?t:'pdf'}catch(e){return'pdf'}})();
+const TABK={ppt:['ppt'],doc:['doc'],xls:['xls']},TABM={ppt:'لسه مفيش عروض PowerPoint. افتح ملف .pptx.',doc:'لسه مفيش مستندات Word. افتح ملف .docx أو اعمل مستند جديد.',xls:'لسه مفيش جداول Excel. افتح ملف أو اعمل جدول جديد.'};
+let TAB=(()=>{try{const t=localStorage.getItem('inktab');return TABK[t]?t:'ppt'}catch(e){return'ppt'}})();
 window.inkGetTab=()=>TAB;window.inkSetTab=t=>{if(!TABK[t])return;TAB=t;try{localStorage.setItem('inktab',t)}catch(e){}};
 const inTab=d=>TABK[TAB].includes(d.k);
 async function home(){$('#ed').hidden=true;$('#home').hidden=false;const l=$('#list');l.innerHTML='';
@@ -29,11 +28,6 @@ async function home(){$('#ed').hidden=true;$('#home').hidden=false;const l=$('#l
   r.querySelector('.ft').onclick=r.querySelector('div').onclick=()=>openDoc(d.id);r.querySelector('.tg').onclick=async()=>{const t=await inkAsk('اسم المجلد/الوسم (فاضي = بدون):',d.tag||'');if(t!==null){d.tag=t.trim();await dbPut(d);home()}};
   {const lb=r.querySelector('.lkb');lb.textContent=d.lk?'🔒':'🔓';lb.classList.toggle('on',!!d.lk);lb.onclick=()=>window.inkLockToggle&&inkLockToggle(d)}
   r.querySelector('button').onclick=async()=>{if(d.lk&&window.inkVerify&&!await inkVerify({title:'الملف مقفول 🔒',sub:d.n}))return;if(await inkConfirm('حذف الملف؟')){try{for(const a of d.au||[])await tx('f','readwrite',s=>s.delete(a.k));await tx('d','readwrite',s=>s.delete(d.id));await tx('f','readwrite',s=>s.delete(d.id))}catch(e){alert('فشل الحذف: '+(e&&e.message||e))}home()}};l.append(r)})}
-$('#fp').onchange=async e=>{const f=e.target.files[0];if(!f)return;const id='p'+Date.now();
- try{const b=await f.arrayBuffer();await tx('f','readwrite',s=>s.put(b,id));
- await dbPut({id,n:f.name.replace(/\.pdf$/i,''),k:'pdf',s:{},u:Date.now()})}catch(x){window.inkBusy&&inkBusy(false);e.target.value='';return alert('تعذر حفظ الملف (ممكن مساحة الجهاز خلصت): '+(x&&x.message||x))}
- e.target.value='';openDoc(id)};
-$('#nn').onclick=async()=>{const id='n'+Date.now();await dbPut({id,n:'ملاحظة '+new Date().toLocaleDateString('ar-EG'),k:'note',np:1,tp:$('#tpl').value,s:{},u:Date.now()});openDoc(id)};
 // ---------- editor ----------
 async function openDoc(id){const my=S.ot=(S.ot||0)+1;const d=await tx('d','readonly',s=>s.get(id));if(my!==S.ot)return;if(!d)return home();S.d=d;S.pdf=null;S.und=[];S.red=[];S.tc=[];S.sr=[];S.si=-1;S.lq='';clearHl();$('#ed').classList.toggle('nt',!!d.nt);$('#sb').hidden=true;$('#cnt').textContent='';$('#si').value='';$('#ed').classList.remove('fs');
  $('#home').hidden=true;$('#ed').hidden=false;$('#ttl').textContent=d.n;$('#ap').hidden=d.k!=='note';$('#sq').hidden=d.k!=='pdf';
@@ -340,7 +334,7 @@ $('#m-nt').onclick=()=>{S.d.nt=!S.d.nt;$('#ed').classList.toggle('nt',S.d.nt);sa
 let tmI=0;$('#m-tm').onclick=()=>{$('#mm').hidden=true;const t=$('#tmr');if(tmI){clearInterval(tmI);tmI=0;t.hidden=true;return}const end=Date.now()+25*60000;t.hidden=false;
  tmI=setInterval(()=>{const s=Math.max(0,Math.round((end-Date.now())/1000));t.textContent='⏱ '+String(s/60|0).padStart(2,'0')+':'+String(s%60).padStart(2,'0');if(!s){clearInterval(tmI);tmI=0;t.hidden=true;navigator.vibrate&&navigator.vibrate([300,100,300]);alert('خلصت 25 دقيقة. خد استراحة 5 دقايق')}},500)};
 $('#tmr').onclick=()=>$('#m-tm').click();
-$('#mgf').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length<2)return alert('اختار ملفين PDF على الأقل');mergeUI(fs)};
+
 // شاشة ترتيب الملفات قبل الدمج
 function mergeUI(fs){const old=$('#mgo');if(old)old.remove();let L=fs.slice();
  const o=E('div','ov','<div class="ph"><b>🔗 ترتيب الملفات قبل الدمج</b><button class="x">✕</button></div><div class="ob"><div class="mh">الأول فوق والأخير تحت. رتّبهم بـ ⬆ ⬇ وبعدين دمج.</div><div class="ml"></div><label class="btn ad">➕ ملفات تانية<input type="file" accept="application/pdf" multiple hidden></label><input class="mn" placeholder="اسم الملف المدمج (اختياري)"></div><div class="mf"><button class="btn p go">🔗 دمج</button></div>');
