@@ -6,15 +6,15 @@ const $=s=>document.querySelector(s),E=(t,c,h)=>{const e=document.createElement(
 // ---------- hooks that app.js expects ----------
 window.LS={r(){},d(){},m(){},u(){}};        // lasso is not part of this build
 window.SN=p=>p;                              // no grid snapping
-window.inkBusy=(on,t)=>{let b=$('#busy');if(!on){b&&b.remove();return}
+window.raBusy=(on,t)=>{let b=$('#busy');if(!on){b&&b.remove();return}
  if(!b){b=E('div','','<div class="bx"><i class="spin"></i><span></span></div>');b.id='busy';document.body.append(b)}
  b.querySelector('span').textContent=t||''};
 const toast=t=>{const d=E('div','oftoast');d.textContent=t;document.body.append(d);setTimeout(()=>d.remove(),2200)};
 
 // ---------- home ----------
 const tabOrder=['ppt','doc','xls','settings'];
-const tabPaint=()=>{const t=inkGetTab();document.querySelectorAll('#hnav button').forEach(b=>{const on=b.dataset.tab===t;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});document.querySelectorAll('.tp').forEach(p=>p.hidden=p.dataset.tab!==t);const isSettings=t==='settings';$('#list').hidden=isSettings;['#ls','#so','#tgs'].forEach(q=>{const e=$(q);if(e)e.hidden=isSettings});};
-const switchHomeTab=t=>{if(!tabOrder.includes(t)||t===inkGetTab())return;inkSetTab(t);S.tg='';tabPaint();home();tabPaint();$('#home').scrollTop=0};
+const tabPaint=()=>{const t=raGetTab();document.querySelectorAll('#hnav button').forEach(b=>{const on=b.dataset.tab===t;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});document.querySelectorAll('.tp').forEach(p=>p.hidden=p.dataset.tab!==t);const isSettings=t==='settings';$('#list').hidden=isSettings;['#ls','#so','#tgs'].forEach(q=>{const e=$(q);if(e)e.hidden=isSettings});};
+const switchHomeTab=t=>{if(!tabOrder.includes(t)||t===raGetTab())return;raSetTab(t);S.tg='';tabPaint();home();tabPaint();$('#home').scrollTop=0};
 document.querySelectorAll('#hnav button').forEach(b=>b.onclick=()=>switchHomeTab(b.dataset.tab));
 // Swipe horizontally across the home screen to move between PowerPoint, Word and Excel.
 // Vertical scrolling and taps on controls remain native and unaffected.
@@ -29,7 +29,7 @@ homeEl.addEventListener('touchend',e=>{
  if(!homeTouch||e.changedTouches.length!==1)return;
  const t=e.changedTouches[0],dx=t.clientX-homeTouch.x,dy=t.clientY-homeTouch.y;homeTouch=null;
  if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.25)return;
- const current=tabOrder.indexOf(inkGetTab());if(current<0)return;
+ const current=tabOrder.indexOf(raGetTab());if(current<0)return;
  const next=dx<0?Math.min(tabOrder.length-1,current+1):Math.max(0,current-1);
  if(next!==current)switchHomeTab(tabOrder[next]);
 },{passive:true});
@@ -56,31 +56,31 @@ const bindSetting=(id,key,convert=v=>v)=>{const el=$('#'+id);if(!el)return;el.va
 bindSetting('set-theme','theme',v=>v);bindSetting('set-eye','eye',Boolean);bindSetting('set-eye-level','eyeLevel',Number);bindSetting('set-motion','motion',Boolean);bindSetting('set-font','font',Number);bindSetting('set-delete-confirm','deleteConfirm',Boolean);
 $('#eye-level-row').hidden=!prefs.eye;applyPrefs();
 if(window.matchMedia){const mq=matchMedia('(prefers-color-scheme: dark)');mq.addEventListener&&mq.addEventListener('change',()=>{if(prefs.theme==='system')applyPrefs()})}
-$('#set-reset').onclick=async()=>{if(!await inkConfirm('إعادة جميع إعدادات التطبيق إلى الوضع الافتراضي؟'))return;prefs={...defaults};savePrefs();['set-theme','set-eye','set-eye-level','set-motion','set-font','set-delete-confirm'].forEach(id=>{const el=$('#'+id);if(el){if(el.type==='checkbox')el.checked=!!prefs[({ 'set-eye':'eye','set-motion':'motion','set-delete-confirm':'deleteConfirm'})[id]];else el.value=String(prefs[({'set-theme':'theme','set-eye-level':'eyeLevel','set-font':'font'})[id]])}});$('#eye-level-row').hidden=true;applyPrefs();toast('تمت إعادة ضبط الإعدادات')};
+$('#set-reset').onclick=async()=>{if(!await raConfirm('إعادة جميع إعدادات التطبيق إلى الوضع الافتراضي؟'))return;prefs={...defaults};savePrefs();['set-theme','set-eye','set-eye-level','set-motion','set-font','set-delete-confirm'].forEach(id=>{const el=$('#'+id);if(el){if(el.type==='checkbox')el.checked=!!prefs[({ 'set-eye':'eye','set-motion':'motion','set-delete-confirm':'deleteConfirm'})[id]];else el.value=String(prefs[({'set-theme':'theme','set-eye-level':'eyeLevel','set-font':'font'})[id]])}});$('#eye-level-row').hidden=true;applyPrefs();toast('تمت إعادة ضبط الإعدادات')};
 // Unified file manager inside Settings.
 const fileList=$('#set-file-list');
 const renderSettingsFiles=async()=>{
  if(!fileList)return;fileList.hidden=false;fileList.textContent='جارٍ تحميل الملفات…';
- try{const files=await window.inkListAllFiles();fileList.innerHTML='';
+ try{const files=await window.raListAllFiles();fileList.innerHTML='';
   if(!files.length){fileList.textContent='لا توجد ملفات محفوظة حاليًا.';return}
   files.forEach(f=>{const row=document.createElement('div');row.className='settings-file-row';
    const info=document.createElement('div'),name=document.createElement('b'),meta=document.createElement('small');name.textContent=f.n;meta.textContent=({doc:'Word',xls:'Excel',ppt:'PowerPoint',note:'ملاحظة',pdf:'PDF'}[f.k]||'ملف')+(f.lk?' · 🔒':'');info.append(name,meta);
-   const open=document.createElement('button');open.className='btn';open.textContent='فتح';open.onclick=()=>window.inkOpenStoredFile(f.id);
-   const rename=document.createElement('button');rename.className='btn';rename.textContent='✏️';rename.setAttribute('aria-label','إعادة تسمية');rename.onclick=async()=>{const n=prompt('الاسم الجديد',f.n);if(n&&n.trim()){await window.inkRenameStoredFile(f.id,n.trim().slice(0,120));renderSettingsFiles();refreshStorage()}};
-   const del=document.createElement('button');del.className='btn danger';del.textContent='حذف';del.onclick=async()=>{if(f.lk&&window.inkVerify&&!await window.inkVerify({title:'الملف مقفول 🔒',sub:f.n}))return;if(!await inkConfirm('حذف «'+f.n+'» نهائيًا؟'))return;await window.inkDeleteStoredFile(f.id);renderSettingsFiles();refreshStorage()};
+   const open=document.createElement('button');open.className='btn';open.textContent='فتح';open.onclick=()=>window.raOpenStoredFile(f.id);
+   const rename=document.createElement('button');rename.className='btn';rename.textContent='✏️';rename.setAttribute('aria-label','إعادة تسمية');rename.onclick=async()=>{const n=prompt('الاسم الجديد',f.n);if(n&&n.trim()){await window.raRenameStoredFile(f.id,n.trim().slice(0,120));renderSettingsFiles();refreshStorage()}};
+   const del=document.createElement('button');del.className='btn danger';del.textContent='حذف';del.onclick=async()=>{if(f.lk&&window.raVerify&&!await window.raVerify({title:'الملف مقفول 🔒',sub:f.n}))return;if(!await raConfirm('حذف «'+f.n+'» نهائيًا؟'))return;await window.raDeleteStoredFile(f.id);renderSettingsFiles();refreshStorage()};
    row.append(info,open,rename,del);fileList.append(row);
   });
  }catch(e){fileList.textContent='تعذر تحميل قائمة الملفات.'}
 };
 $('#set-file-manager').onclick=()=>{if(fileList.hidden||!fileList.childElementCount)renderSettingsFiles();else fileList.hidden=true};
 const humanBytes=n=>n<1024?Math.round(n)+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(2)+' MB';
-const refreshStorage=async()=>{try{const x=await window.inkStorageStats();$('#storage-count').textContent=x.count+' ملف';$('#storage-size').textContent=humanBytes(x.bytes);const quota=x.quota||0,used=x.usage||x.bytes;const pct=quota?Math.min(100,used/quota*100):0;$('#storage-meter-fill').style.width=pct+'%';$('#storage-detail').textContent=quota?'المساحة المقدرة المستخدمة من مساحة الموقع: '+humanBytes(used)+' من '+humanBytes(quota)+'.':'الحجم المحسوب لملفات التطبيق فقط؛ تقدير الحصة غير متاح على هذا الجهاز.'}catch(e){$('#storage-detail').textContent='تعذر قراءة معلومات التخزين.'}};
+const refreshStorage=async()=>{try{const x=await window.raStorageStats();$('#storage-count').textContent=x.count+' ملف';$('#storage-size').textContent=humanBytes(x.bytes);const quota=x.quota||0,used=x.usage||x.bytes;const pct=quota?Math.min(100,used/quota*100):0;$('#storage-meter-fill').style.width=pct+'%';$('#storage-detail').textContent=quota?'المساحة المقدرة المستخدمة من مساحة الموقع: '+humanBytes(used)+' من '+humanBytes(quota)+'.':'الحجم المحسوب لملفات التطبيق فقط؛ تقدير الحصة غير متاح على هذا الجهاز.'}catch(e){$('#storage-detail').textContent='تعذر قراءة معلومات التخزين.'}};
 $('#set-storage-refresh').onclick=refreshStorage;refreshStorage();
 const goTab=t=>document.querySelector('#hnav [data-tab="'+t+'"]').click();
 $('#set-convert-word').onclick=()=>goTab('doc');$('#set-convert-excel').onclick=()=>goTab('xls');$('#set-convert-ppt').onclick=()=>goTab('ppt');
 
 $('#set-backup').onclick=()=>{$('#hmore').hidden=false;$('#bkx').click()};
-window.inkAppSettings=()=>({...prefs});
+window.raAppSettings=()=>({...prefs});
 $('#hmn').onclick=()=>{const m=$('#hmore');m.hidden=!m.hidden};
 
 // ---------- editor: tools, popups ----------
@@ -98,7 +98,7 @@ $('#m-po').addEventListener('click',()=>$('#ed').classList.toggle('po',!!S.po));
 const _o=window.openDoc;
 window.openDoc=async function(id){
  let d;try{d=await tx('d','readonly',s=>s.get(id))}catch(e){}
- if(d&&d.lk&&d.k==='note'&&!await inkVerify({title:'الملف مقفول 🔒',sub:d.n}))return;
+ if(d&&d.lk&&d.k==='note'&&!await raVerify({title:'الملف مقفول 🔒',sub:d.n}))return;
  const r=await _o.apply(this,arguments);
  if(S.d&&S.d.k==='note'&&S.t==='hand'){S.t='pen';sync()}
  return r};
@@ -122,7 +122,7 @@ $('#cp').onclick=async()=>{const t=getSelection().toString();try{await navigator
   if(!r.ok)throw new Error('m'+r.status);const j=await r.json();const t=j&&j.responseData&&j.responseData.translatedText;if(!t)throw new Error('empty');return t};
  const translate=async(text,tl)=>{const parts=split(text),res=[];
   for(const p of parts){try{res.push(await google(p,tl))}catch(e){res.push(await memory(p,tl))}}return res.join(' ')};
- window.inkTranslate=translate;
+ window.raTranslate=translate;
  let tok=0;
  const show=(text)=>{
   document.querySelector('#trc')&&document.querySelector('#trc').remove();
@@ -154,12 +154,12 @@ function askPin(title,sub){return new Promise(ok=>{
  const done=v=>{w.remove();ok(v)};
  w.querySelector('.dc').onclick=()=>done(null);w.querySelector('.do').onclick=()=>done(i.value);
  i.onkeydown=e=>{if(e.key==='Enter')done(i.value)};document.body.append(w);setTimeout(()=>i.focus(),60)})}
-window.inkVerify=async o=>{const p=getPin();if(!p)return true;
+window.raVerify=async o=>{const p=getPin();if(!p)return true;
  for(;;){const v=await askPin(o.title||'الرقم السري',o.sub);if(v==null)return false;
   if(await hash(v,unhex(p.s))===p.h)return true;
-  if(!await inkYN('الرقم غلط. تحاول تاني؟','حاول تاني','إلغاء'))return false}};
-window.inkLockToggle=async d=>{
- if(d.lk){if(!await inkVerify({title:'فك القفل',sub:d.n}))return;d.lk=0}
+  if(!await raYN('الرقم غلط. تحاول تاني؟','حاول تاني','إلغاء'))return false}};
+window.raLockToggle=async d=>{
+ if(d.lk){if(!await raVerify({title:'فك القفل',sub:d.n}))return;d.lk=0}
  else{
   if(!getPin()){
    const a=await askPin('اختار رقم سري (4 أرقام على الأقل)');if(a==null)return;

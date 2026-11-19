@@ -17,13 +17,13 @@
 .ofw.ppt .pptx-preview-wrapper{padding:0!important;margin:0!important;background:transparent!important;height:auto!important;overflow:visible!important}
 .ofw.ppt .pptx-preview-slide-wrapper{margin:0!important;box-shadow:none!important}
 .ofpg{width:min(100%,794px);margin:8px auto;background:#fff;color:#000;box-shadow:0 2px 8px #0008;min-height:70vh}
-#oed{padding:28px 24px;min-height:70vh;outline:none;font:16px/1.55 Calibri,Arial,sans-serif;color:#000;background:#fff;word-break:break-word}
+#oed{padding:28px 24px;min-height:70vh;outline:none;font:16px/1.55 Calibri,Tahoma,Arial,'Noto Naskh Arabic',sans-serif;color:#000;background:#fff;word-break:break-word}
 #oed p,#oed div,#oed li,#oed h1,#oed h2,#oed h3,#oed h4,#oed td,#oed th,#oed blockquote{unicode-bidi:plaintext;text-align:start}
 #oed p{margin:0 0 8px}
 #oed h1{font-size:28px;margin:12px 0 8px}#oed h2{font-size:22px;margin:10px 0 6px}#oed h3{font-size:18px;margin:8px 0 6px}
 #oed table{border-collapse:collapse;width:100%;margin:6px 0}#oed td,#oed th{border:1px solid #444;padding:4px 6px;min-width:30px}
 #oed img{max-width:100%;height:auto}
-.ofprint{position:fixed;left:-10000px;top:0;width:794px;padding:56px 60px;background:#fff;color:#000;font:16px/1.55 Calibri,Arial,sans-serif;box-sizing:border-box}
+.ofprint{position:fixed;left:-10000px;top:0;width:794px;padding:56px 60px;background:#fff;color:#000;font:16px/1.55 Calibri,Tahoma,Arial,'Noto Naskh Arabic',sans-serif;box-sizing:border-box}
 .ofprint.x{width:auto;padding:16px;font:13px/1.3 Calibri,Arial,sans-serif}
 .ofprint p,.ofprint div,.ofprint li,.ofprint td,.ofprint h1,.ofprint h2,.ofprint h3{unicode-bidi:plaintext;text-align:start}
 .ofprint p{margin:0 0 8px}.ofprint table{border-collapse:collapse}.ofprint td{border:1px solid #444;padding:4px 6px}
@@ -115,12 +115,12 @@
 .dgt:active{background:var(--acc)}
 
 @media print{
- body.ink-print #home,body.ink-print #ed,body.ink-print #oft,body.ink-print #ofbar{display:none!important}
- body.ink-print #of{position:static!important;display:block!important;height:auto!important;overflow:visible!important}
- body.ink-print #ofm{display:block!important;overflow:visible!important;height:auto!important}
- body.ink-print #oed{overflow:visible!important;min-height:0!important}
- body.ink-print .ofpg,body.ink-print .ofw,body.ink-print #xg,body.ink-print .pe-stage{overflow:visible!important}
- body.ink-print *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ body.ra-print #home,body.ra-print #ed,body.ra-print #oft,body.ra-print #ofbar{display:none!important}
+ body.ra-print #of{position:static!important;display:block!important;height:auto!important;overflow:visible!important}
+ body.ra-print #ofm{display:block!important;overflow:visible!important;height:auto!important}
+ body.ra-print #oed{overflow:visible!important;min-height:0!important}
+ body.ra-print .ofpg,body.ra-print .ofw,body.ra-print #xg,body.ra-print .pe-stage{overflow:visible!important}
+ body.ra-print *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 /* Mobile camera-to-Word OCR */
 .scanbtn{display:flex!important;justify-content:center;align-items:center;margin-top:10px;min-height:46px;background:var(--acc)!important;color:#fff!important;border-color:var(--acc)!important}
@@ -252,3 +252,89 @@
     height:auto;
   }
 }
+
+/* ---------- PowerPoint: vertical tools list (☰ الأدوات) ---------- */
+.pv-m{position:fixed;left:0;right:0;bottom:0;z-index:60;max-height:64dvh;display:flex;flex-direction:column;direction:rtl;background:var(--bar);border-top:1px solid var(--line);border-radius:18px 18px 0 0;box-shadow:0 -10px 30px #0008;padding-bottom:env(safe-area-inset-bottom)}
+.pv-t{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line);font-size:16px}
+.pv-x{background:none;border:0;font-size:18px;min-width:44px;min-height:44px;color:var(--fg2)}
+.pv-b{overflow-y:auto;overscroll-behavior:contain;padding:6px 10px 14px}
+.pv-sec{border-bottom:1px solid var(--line)}
+.pv-sec>summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 4px;font-size:15px;font-weight:600;color:var(--fg);cursor:pointer}
+.pv-sec>summary::-webkit-details-marker{display:none}
+.pv-sec>summary i{font-style:normal;font-size:20px}
+.pv-sec>summary::after{content:"‹";margin-inline-start:auto;color:var(--fg2);transition:transform .15s}
+.pv-sec[open]>summary::after{transform:rotate(-90deg)}
+.pv-h{margin:10px 2px 4px;font-size:12px;font-weight:600;color:var(--fg2)}
+.pv-m .pv-row{display:flex;align-items:center;gap:8px;width:100%;min-height:46px;margin:0 0 6px;padding:8px 12px;font-size:15px;text-align:start;white-space:normal;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:12px}
+.pv-m .pv-row.pv-w{justify-content:space-between}
+.pv-m .pv-row.pv-w select,.pv-m .pv-row.pv-w input{flex:1;max-width:60%;min-height:40px;width:auto;border:1px solid var(--line);background:var(--bar);color:var(--fg);border-radius:10px;font-size:15px}
+.pv-m .pv-row.pv-w .ofcol{flex:none;width:auto;margin:0}
+.pv-m .pv-l{color:var(--fg2);font-size:14px}
+.pv-m .pv-s{display:block;margin-inline-start:auto;font-size:12px;color:var(--fg2)}
+.pv-m .pv-hint{display:block;padding:6px 4px 10px;font-size:13px;color:var(--fg2)}
+
+/* ---------- PowerPoint: ready-made presentation picker ---------- */
+.dk-ov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;direction:rtl}
+.dk-box{width:min(560px,100%);max-height:88dvh;overflow-y:auto;overscroll-behavior:contain;background:var(--bar);border:1px solid var(--line);border-radius:18px 18px 0 0;padding:12px 14px calc(16px + env(safe-area-inset-bottom))}
+.dk-h{display:flex;align-items:center;justify-content:space-between;font-size:17px;position:sticky;top:-12px;background:var(--bar);padding:8px 0;margin-top:-4px}
+.dk-x{background:none;border:0;font-size:18px;min-width:44px;min-height:44px;color:var(--fg2)}
+.dk-n{margin:2px 0 10px;font-size:13px;color:var(--fg2)}
+.dk-g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dk-c{display:flex;flex-direction:column;align-items:stretch;gap:4px;text-align:start;padding:8px;background:var(--card);border:1px solid var(--line);border-radius:14px;color:var(--fg)}
+.dk-c:active{border-color:var(--acc)}
+.dk-c b{font-size:14px}.dk-c small{font-size:12px;color:var(--fg2);line-height:1.35}.dk-c em{font-style:normal;font-size:11px;color:var(--hl)}
+.dk-p{position:relative;display:block;aspect-ratio:16/9;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.dk-p i{position:absolute;bottom:8%;height:8%;width:16%;border-radius:3px}
+.dk-p i:nth-child(1){right:10%}.dk-p i:nth-child(2){right:30%}.dk-p i:nth-child(3){right:50%}
+.dk-p::before{content:"";position:absolute;right:10%;top:24%;width:60%;height:14%;background:#fff;opacity:.85;border-radius:3px}
+.dk-p::after{content:"";position:absolute;right:10%;top:44%;width:36%;height:8%;background:#fff;opacity:.45;border-radius:3px}
+.dk-b .dk-p{border-style:dashed;border-color:#94a3b8}.dk-b .dk-p::before,.dk-b .dk-p::after{display:none}
+
+.dk-t{grid-column:1/-1;margin:10px 2px 0;font-size:13px;font-weight:600;color:var(--fg2)}
+.dk-t:first-child{margin-top:0}
+
+.tpg{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.tpt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:12px;color:var(--fg);border:1px solid var(--line);min-height:84px}
+.tpt i{font-style:normal;font-size:26px}
+.tpt span{font-size:12px;text-align:center}
+.tpt:active{background:var(--acc)}
+@media (max-width:640px){.tpg{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* ===== Word Pro: tables, images, direction, page setup, header/footer ===== */
+.ofpg{position:relative}
+#oed[dir=rtl] :is(p,div,li,h1,h2,h3,h4,h5,h6,td,th,blockquote),#oed[dir=ltr] :is(p,div,li,h1,h2,h3,h4,h5,h6,td,th,blockquote){unicode-bidi:normal}
+#oed :is(p,div,li,h1,h2,h3,h4,h5,h6,td,th,blockquote)[dir=rtl],#oed :is(p,div,li,h1,h2,h3,h4,h5,h6,td,th,blockquote)[dir=ltr]{unicode-bidi:isolate}
+#oed td,#oed th{vertical-align:top}
+#oed table[data-tw=auto]{width:auto}
+#oed [data-pb="1"]{border-top:2px dashed #7aa2f7;padding-top:6px}
+#oed img.wpsel{outline:2px solid #4f8cff;outline-offset:1px}
+#oed img{cursor:pointer}
+#oed.wpguide{background-image:linear-gradient(to bottom,transparent calc(var(--wpc) - 2px),rgba(79,140,255,.45) calc(var(--wpc) - 2px));background-size:100% var(--wpc);background-origin:content-box;background-clip:content-box;background-repeat:repeat-y}
+.wpbr{border-top:2px dashed #8a93a8;margin:14px 0;text-align:center;color:#8a93a8;font:12px/1 Tahoma,Arial,sans-serif;user-select:none;-webkit-user-select:none;direction:rtl}
+.wpbr span{background:#fff;padding:0 10px;position:relative;top:-7px}
+.ofprint .wpbr{display:none}.ofprint table[data-tw=auto]{width:auto}
+body.ra-print .wpbr{page-break-after:always;border:0;height:0;margin:0;overflow:hidden}
+.wpband{display:flex;flex-direction:column;gap:2px;padding:4px max(14px,6%);box-sizing:border-box;background:#fff;color:#000}
+.wphd{border-bottom:1px dashed #b4bccb}.wpft{border-top:1px dashed #b4bccb}
+.wpband.has{background:#f7f9fd}
+.wpta{width:100%;box-sizing:border-box;resize:none;border:0;outline:none;background:transparent;color:inherit;font:13px/1.5 Calibri,Tahoma,Arial,'Noto Naskh Arabic',sans-serif;padding:2px 0;overflow:hidden;min-height:26px;unicode-bidi:plaintext}
+.wpband .wpta{color:#000}.wpta::placeholder{color:#9aa4b8}
+.wppn{display:none;font:13px/1.4 Calibri,Tahoma,Arial,sans-serif;color:#333;padding:0 0 2px}
+.wpimgbar{position:fixed;left:8px;right:8px;bottom:calc(66px + env(safe-area-inset-bottom));z-index:70;display:flex;align-items:center;gap:6px;overflow-x:auto;padding:6px;background:var(--bar);border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 24px #0008;direction:rtl;scrollbar-width:none}
+.wpimgbar::-webkit-scrollbar{display:none}
+.wpimgbar .wpbtn{flex:none;min-width:44px;white-space:nowrap}
+.wplab{flex:none;min-width:44px;text-align:center;color:var(--fg);font-size:14px}
+.wpb .wpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:6px;margin-bottom:6px}
+.wpbtn{padding:9px 8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);font:inherit;font-size:14px;line-height:1.25;cursor:pointer}
+.wpbtn.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.wpbtn.pri{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+.wpbtn.dng{color:#ff6b6b;border-color:#ff6b6b55}
+.wpr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;font-size:14px;color:var(--fg)}
+.wpr select,.wpr input[type=number]{min-width:120px;max-width:55%;padding:7px 8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);font:inherit;font-size:14px}
+.wpr input[type=checkbox]{width:22px;height:22px;flex:none}
+.wpbox{display:block;width:100%;box-sizing:border-box;margin:4px 0;padding:8px;border:1px solid var(--line)!important;border-radius:10px;background:var(--card);color:var(--fg);min-height:52px}
+.wprow{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 6px}
+.wpsw{width:32px;height:32px;border-radius:50%;border:2px solid var(--line);padding:0;cursor:pointer}
+.wpsw.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}
+.wpnote{margin:8px 0;font-size:12px;color:var(--fg2);line-height:1.5}
+@media (max-width:600px){.wpb .wpgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.wpbtn{min-height:44px}.wpimgbar{bottom:calc(60px + env(safe-area-inset-bottom))}}

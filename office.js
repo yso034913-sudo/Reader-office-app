@@ -3,7 +3,7 @@
 'use strict';
 const $=s=>document.querySelector(s),E=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
 const KIND={doc:'Word',xls:'Excel',ppt:'PowerPoint'};
-window.inkKind=d=>KIND[d.k]||'ملف';
+window.raKind=d=>KIND[d.k]||'ملف';
 
 // ---------- lazy library loader (local lib/ first, CDN fallback) ----------
 const LIB={
@@ -26,24 +26,24 @@ function need(k){const p=LQ.then(async()=>{if(G[k])return G[k];const L=LIB[k];tr
  LQ=p.catch(()=>{});return p}
 
 // ---------- helpers ----------
-const busy=(on,t)=>window.inkBusy&&window.inkBusy(on,t);
+const busy=(on,t)=>window.raBusy&&window.raBusy(on,t);
 const getBuf=id=>tx('f','readonly',s=>s.get(id));
 const putBuf=(id,b)=>tx('f','readwrite',s=>s.put(b,id));
 const baseName=n=>n.replace(/\.(docx|xlsx|xls|csv|pptx)$/i,'');
 const MIME={doc:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',xls:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',ppt:'application/vnd.openxmlformats-officedocument.presentationml.presentation'};
 const EXT={doc:'.docx',xls:'.xlsx',ppt:'.pptx'};
 function dl(blob,name){const a=E('a'),u=URL.createObjectURL(blob);a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),60000)}
-const printOffice=()=>{document.body.classList.add('ink-print');window.print();setTimeout(()=>document.body.classList.remove('ink-print'),1200)};
+const printOffice=()=>{document.body.classList.add('ra-print');window.print();setTimeout(()=>document.body.classList.remove('ra-print'),1200)};
 async function encryptedExport(){
- const pass=await inkAsk('اختار كلمة مرور لتشفير نسخة الملف (8 أحرف على الأقل):');if(pass===null)return;if(pass.length<8)return alert('كلمة المرور لازم تكون 8 أحرف على الأقل');
+ const pass=await raAsk('اختار كلمة مرور لتشفير نسخة الملف (8 أحرف على الأقل):');if(pass===null)return;if(pass.length<8)return alert('كلمة المرور لازم تكون 8 أحرف على الأقل');
  try{busy(true,'جاري التشفير…');const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)),mat=await crypto.subtle.importKey('raw',new TextEncoder().encode(pass),'PBKDF2',false,['deriveKey']);
  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:250000,hash:'SHA-256'},mat,{name:'AES-GCM',length:256},false,['encrypt']);
  const meta=new TextEncoder().encode(JSON.stringify({name:O.d.n+EXT[O.d.k],kind:O.d.k})),raw=new Uint8Array(O.buf),plain=new Uint8Array(8+meta.length+raw.length);plain.set(new TextEncoder().encode('RAE1'));new DataView(plain.buffer).setUint32(4,meta.length);plain.set(meta,8);plain.set(raw,8+meta.length);
- const cipher=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,plain)),out=new Uint8Array(32+cipher.length);out.set(new TextEncoder().encode('RAC1'));out.set(salt,4);out.set(iv,20);out.set(cipher,32);dl(new Blob([out]),O.d.n+'.inkenc');busy(false);toast('تم إنشاء نسخة مشفرة AES-GCM');
+ const cipher=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,plain)),out=new Uint8Array(32+cipher.length);out.set(new TextEncoder().encode('RAC1'));out.set(salt,4);out.set(iv,20);out.set(cipher,32);dl(new Blob([out]),O.d.n+'.raenc');busy(false);toast('تم إنشاء نسخة مشفرة AES-GCM');
  }catch(e){fail('تعذر التشفير',e)}
 }
 async function decryptOfficeFile(file){
- try{busy(true,'جاري فك التشفير…');const a=new Uint8Array(await file.arrayBuffer());if(a.length<48||new TextDecoder().decode(a.slice(0,4))!=='RAC1')throw 0;const pass=await inkAsk('اكتب كلمة مرور الملف المشفر:');if(pass===null){busy(false);return}
+ try{busy(true,'جاري فك التشفير…');const a=new Uint8Array(await file.arrayBuffer());if(a.length<48||new TextDecoder().decode(a.slice(0,4))!=='RAC1')throw 0;const pass=await raAsk('اكتب كلمة مرور الملف المشفر:');if(pass===null){busy(false);return}
  const salt=a.slice(4,20),iv=a.slice(20,32),mat=await crypto.subtle.importKey('raw',new TextEncoder().encode(pass),'PBKDF2',false,['deriveKey']),key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:250000,hash:'SHA-256'},mat,{name:'AES-GCM',length:256},false,['decrypt']);
  const plain=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv},key,a.slice(32)));if(new TextDecoder().decode(plain.slice(0,4))!=='RAE1')throw 0;const ml=new DataView(plain.buffer,plain.byteOffset).getUint32(4),meta=JSON.parse(new TextDecoder().decode(plain.slice(8,8+ml))),buf=plain.slice(8+ml);if(!['doc','xls','ppt'].includes(meta.kind))throw 0;
  const d=await createRec(meta.kind,(meta.name||'ملف').replace(/\.(docx|xlsx|pptx)$/i,'')+' (مفكوك',buf.buffer.slice(buf.byteOffset,buf.byteOffset+buf.byteLength),1);busy(false);openOffice(d,{edit:1,newDoc:meta.kind==='doc'});
@@ -62,17 +62,17 @@ let O=null;
 function setBar(items){const b=$('#ofbar');b.innerHTML='';b.hidden=!items.length;for(const it of items){if(it==='|'){b.append(E('i','sep'));continue}
  if(it.el){b.append(it.el);continue}
  const x=E('button',it.on?'on':'',it.t);if(it.title)x.setAttribute('aria-label',it.title);x.addEventListener('mousedown',e=>e.preventDefault());x.onclick=()=>it.f(x);b.append(x)}}
-async function back(){if(!O)return;if(O.dirty&&O.autosave){try{await O.autosave(1)}catch(e){}}if(O&&O.dirty&&!await inkConfirm('في تعديلات مش محفوظة. تخرج من غير حفظ؟'))return;close()}
+async function back(){if(!O)return;if(O.dirty&&O.autosave){try{await O.autosave(1)}catch(e){}}if(O&&O.dirty&&!await raConfirm('في تعديلات مش محفوظة. تخرج من غير حفظ؟'))return;close()}
 function close(){if(O&&O.cleanup)O.cleanup();sec.hidden=true;O=null;$('#ofm').innerHTML='';$('#ofm').className='';$('#home').hidden=false;home()}
 $('#ofb').onclick=back;
-addEventListener('load',()=>{const o=window.inkBack;window.inkBack=()=>{if(O&&!sec.hidden){back();return true}return o?o():false}});
+addEventListener('load',()=>{const o=window.raBack;window.raBack=()=>{if(O&&!sec.hidden){back();return true}return o?o():false}});
 
 // ---------- open / import ----------
 const OFK={doc:1,xls:1,ppt:1};
 const _open=window.openDoc;
 const UNL={};
 window.openDoc=async function(id){let d;try{d=await tx('d','readonly',s=>s.get(id))}catch(e){}
- if(d&&OFK[d.k]){if(d.lk&&window.inkVerify&&!(UNL[id]&&Date.now()-UNL[id]<180000)){if(!await window.inkVerify({title:'الملف مقفول 🔒',sub:d.n}))return;UNL[id]=Date.now()}return openOffice(d)}
+ if(d&&OFK[d.k]){if(d.lk&&window.raVerify&&!(UNL[id]&&Date.now()-UNL[id]<180000)){if(!await window.raVerify({title:'الملف مقفول 🔒',sub:d.n}))return;UNL[id]=Date.now()}return openOffice(d)}
  return _open.apply(this,arguments)};
 async function openOffice(d,opt={}){
  if(O&&O.cleanup)O.cleanup();O={d,opt,dirty:0,z:1};$('#home').hidden=true;sec.hidden=false;$('#oftt').textContent=d.n;$('#ofm').innerHTML='';$('#ofm').className='';setBar([]);
@@ -95,7 +95,7 @@ async function importFile(f){
   if(x==='xls'){const S=await need('sj');const wb=S.read(buf);buf=S.write(wb,{bookType:'xlsx',type:'array'})}
   if(x==='csv')buf=await csvToXlsx(new TextDecoder('utf-8').decode(buf));
   const d=await createRec(k,baseName(f.name),buf);busy(false);openOffice(d)}catch(e){fail('تعذر استيراد الملف',e)}}
-window.inkImportOffice=importFile;
+window.raImportOffice=importFile;
 function wire(id,fn){const b=document.getElementById(id);b&&(b.onclick=fn)}
 // blank .docx / .xlsx written by hand (no library download needed, instant)
 function zipStore(files){const te=new TextEncoder(),parts=[],cd=[];let off=0;
@@ -122,7 +122,15 @@ const WORD_TPL={
  report:'<h1>عنوان التقرير</h1><p>إعداد: ....................　 التاريخ: ....................</p><h2>الملخص التنفيذي</h2><p>اكتب ملخصًا موجزًا لأهم النتائج.</p><h2>المقدمة</h2><p>خلفية الموضوع وهدف التقرير.</p><h2>المنهجية</h2><p>طريقة جمع المعلومات وتحليلها.</p><h2>النتائج والمناقشة</h2><p>اعرض النتائج الرئيسية هنا.</p><h2>التوصيات</h2><ol><li>التوصية الأولى</li><li>التوصية الثانية</li></ol><h2>المراجع</h2><p>أضف المصادر المستخدمة.</p>',
  letter:'<h1>عنوان الخطاب</h1><p>التاريخ: ....................</p><p>السيد/السيدة: ....................</p><p>تحية طيبة وبعد،</p><p>اكتب نص الخطاب هنا...</p><p>وتفضلوا بقبول فائق الاحترام،</p><p>الاسم: ....................</p><p>التوقيع: ....................</p>'
 };
-wire('tpl-doc',async()=>{const c=await inkAsk('اختر قالب Word: cv للسيرة الذاتية أو report للتقرير أو letter للخطاب','cv');if(!c)return;const k=c.trim().toLowerCase();if(!WORD_TPL[k])return toast('استخدم cv أو report أو letter');try{busy(true,'جاري تجهيز القالب…');const dx=await need('dx'),tmp=E('div');tmp.innerHTML=WORD_TPL[k];const blob=await htmlToDocx(dx,tmp),buf=await blob.arrayBuffer(),d=await createRec('doc',({cv:'سيرة ذاتية',report:'تقرير',letter:'خطاب'}[k]),buf,1);busy(false);openOffice(d,{edit:1,newDoc:1})}catch(e){fail('تعذر إنشاء القالب',e)}});
+const WORD_BASE=[{id:'cv',ic:'👤',nm:'سيرة ذاتية'},{id:'report',ic:'📄',nm:'تقرير'},{id:'letter',ic:'✉️',nm:'خطاب'}];
+async function makeWordTpl(t){try{busy(true,'جاري تجهيز القالب…');const dx=await need('dx'),tmp=E('div');tmp.innerHTML=t.html;const blob=await htmlToDocx(dx,tmp),buf=await blob.arrayBuffer(),d=await createRec('doc',t.nm,buf,1);busy(false);openOffice(d,{edit:1,newDoc:1})}catch(e){fail('تعذر إنشاء القالب',e)}}
+wire('tpl-doc',()=>{const o=document.querySelector('.twg');if(o){o.remove();return}
+ const all=[...WORD_BASE.map(b=>({...b,html:WORD_TPL[b.id]})),...(window.WORD_TPLS||[])];
+ const w=E('div','shg twg'),box=E('div','shb','<div class="shh"><b>📚 قوالب Word ('+all.length+')</b><button type="button" aria-label="إغلاق">✕</button></div>'),close=()=>w.remove();
+ box.querySelector('button').onclick=close;w.onpointerdown=e=>{if(e.target===w)close()};
+ const h=E('h5');h.textContent='اختار قالب وهيتفتح جاهز للتعديل';const g=E('div','tpg');
+ for(const t of all){const b=E('button','tpt','<i>'+t.ic+'</i><span></span>');b.querySelector('span').textContent=t.nm;b.onclick=()=>{close();makeWordTpl(t)};g.append(b)}
+ box.append(h,g);w.append(box);document.body.append(w)});
 wire('nw-doc',async()=>{try{busy(true,'جاري إنشاء المستند…');const buf=await blankDocx();
  const d=await createRec('doc','مستند '+new Date().toLocaleDateString('ar-EG'),buf,1);busy(false);openOffice(d,{edit:1,newDoc:1})}catch(e){fail('تعذر إنشاء المستند',e)}});
 // ---------- new blank PowerPoint (built from scratch: 16:9, one title slide) ----------
@@ -137,7 +145,7 @@ function pptNew(){
   tx=(id,nm,x,y,w,h,t,sz,b,c,an,fill)=>'<p:sp><p:nvSpPr><p:cNvPr id="'+id+'" name="'+nm+'"/><p:cNvSpPr'+(t?' txBox="1"':'')+'/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="'+x+'" y="'+y+'"/><a:ext cx="'+w+'" cy="'+h+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom>'+(fill?'<a:solidFill><a:srgbClr val="'+fill+'"/></a:solidFill>':'<a:noFill/>')+'</p:spPr><p:txBody><a:bodyPr wrap="square" anchor="'+an+'"><a:normAutofit/></a:bodyPr><a:lstStyle/>'+(t?'<a:p><a:pPr algn="ctr" rtl="1"/><a:r><a:rPr lang="ar-EG" sz="'+sz+'"'+(b?' b="1"':'')+'><a:solidFill><a:srgbClr val="'+c+'"/></a:solidFill></a:rPr><a:t>'+t+'</a:t></a:r></a:p>':'<a:p><a:endParaRPr lang="en-US"/></a:p>')+'</p:txBody></p:sp>',
   fill3=t=>t.repeat(3),sf='<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>',
   clrs=[['dk2','44546A'],['lt2','E7E6E6'],['accent1','4472C4'],['accent2','ED7D31'],['accent3','A5A5A5'],['accent4','FFC000'],['accent5','5B9BD5'],['accent6','70AD47'],['hlink','0563C1'],['folHlink','954F72']],
-  font='<a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/>',
+  font='<a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface="Arial"/>',
   theme=H+'<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Reader All"><a:themeElements><a:clrScheme name="Reader All"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1>'+clrs.map(c=>'<a:'+c[0]+'><a:srgbClr val="'+c[1]+'"/></a:'+c[0]+'>').join('')+'</a:clrScheme><a:fontScheme name="Reader"><a:majorFont>'+font+'</a:majorFont><a:minorFont>'+font+'</a:minorFont></a:fontScheme><a:fmtScheme name="Reader"><a:fillStyleLst>'+fill3(sf)+'</a:fillStyleLst><a:lnStyleLst>'+fill3('<a:ln w="6350">'+sf+'</a:ln>')+'</a:lnStyleLst><a:effectStyleLst>'+fill3('<a:effectStyle><a:effectLst/></a:effectStyle>')+'</a:effectStyleLst><a:bgFillStyleLst>'+fill3(sf)+'</a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>',
   master=H+'<p:sldMaster '+PN+'><p:cSld><p:bg><p:bgRef idx="1001"><a:schemeClr val="bg1"/></p:bgRef></p:bg><p:spTree>'+grp+'</p:spTree></p:cSld><p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/><p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst><p:txStyles><p:titleStyle><a:lvl1pPr><a:defRPr sz="4400"/></a:lvl1pPr></p:titleStyle><p:bodyStyle><a:lvl1pPr><a:defRPr sz="2800"/></a:lvl1pPr></p:bodyStyle><p:otherStyle><a:lvl1pPr><a:defRPr sz="1800"/></a:lvl1pPr></p:otherStyle></p:txStyles></p:sldMaster>',
   layout=H+'<p:sldLayout '+PN+' type="blank" preserve="1"><p:cSld name="Blank"><p:spTree>'+grp+'</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>',
@@ -155,8 +163,8 @@ function pptNew(){
   ['ppt/slideLayouts/slideLayout1.xml',layout],['ppt/slideLayouts/_rels/slideLayout1.xml.rels',rels([['slideMaster','../slideMasters/slideMaster1.xml']])],
   ['ppt/slides/slide1.xml',slide],['ppt/slides/_rels/slide1.xml.rels',rels([['slideLayout','../slideLayouts/slideLayout1.xml']])],['ppt/theme/theme1.xml',theme]].map(([k,v])=>[k,te.encode(v)]));
  return zipBuild({m:{}},new Set(),put).arrayBuffer()}
-wire('nw-ppt',async()=>{try{const buf=await pptNew(),d=await createRec('ppt','عرض '+new Date().toLocaleDateString('ar-EG'),buf,1);openOffice(d,{edit:1})}catch(e){fail('تعذر إنشاء العرض',e)}});
-wire('tpl-xls',async()=>{const c=await inkAsk('اختر قالب Excel: budget للميزانية أو attendance للحضور أو inventory للمخزون','budget');if(!c)return;const k=c.trim().toLowerCase();if(!['budget','attendance','inventory'].includes(k))return toast('استخدم budget أو attendance أو inventory');try{busy(true,'جاري إنشاء القالب…');const ex=await need('xl'),wb=new ex.Workbook(),ws=wb.addWorksheet(({budget:'الميزانية',attendance:'الحضور',inventory:'المخزون'}[k]));const rows={budget:[['البند','المبلغ المخطط','المبلغ الفعلي','الفرق'],['إيجار',0,0,{formula:'B2-C2'}],['طعام',0,0,{formula:'B3-C3'}],['مواصلات',0,0,{formula:'B4-C4'}],['الإجمالي',{formula:'SUM(B2:B4)'},{formula:'SUM(C2:C4)'},{formula:'B5-C5'}]],attendance:[['الاسم','التاريخ','الحالة','ملاحظات'],['','','حاضر',''],['','','غائب','']],inventory:[['الصنف','الكمية','سعر الوحدة','الإجمالي'],['',0,0,{formula:'B2*C2'}],['',0,0,{formula:'B3*C3'}],['الإجمالي','','',{formula:'SUM(D2:D3)'}]]};ws.addRows(rows[k]);ws.getRow(1).font={bold:true,color:{argb:'FFFFFFFF'}};ws.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1E40AF'}};ws.columns.forEach(col=>col.width=20);ws.views=[{state:'frozen',ySplit:1}];const b=await wb.xlsx.writeBuffer(),d=await createRec('xls',({budget:'ميزانية',attendance:'سجل حضور',inventory:'مخزون'}[k]),b,1);busy(false);openOffice(d)}catch(e){fail('تعذر إنشاء قالب Excel',e)}});
+wire('nw-ppt',async()=>{try{const deck=window.pptDeckPicker?await window.pptDeckPicker():'biz';if(!deck)return;const buf=await pptNew(),d=await createRec('ppt','عرض '+new Date().toLocaleDateString('ar-EG'),buf,1);openOffice(d,{edit:1,deck})}catch(e){fail('تعذر إنشاء العرض',e)}});
+wire('tpl-xls',async()=>{const c=await raAsk('اختر قالب Excel: budget للميزانية أو attendance للحضور أو inventory للمخزون','budget');if(!c)return;const k=c.trim().toLowerCase();if(!['budget','attendance','inventory'].includes(k))return toast('استخدم budget أو attendance أو inventory');try{busy(true,'جاري إنشاء القالب…');const ex=await need('xl'),wb=new ex.Workbook(),ws=wb.addWorksheet(({budget:'الميزانية',attendance:'الحضور',inventory:'المخزون'}[k]));const rows={budget:[['البند','المبلغ المخطط','المبلغ الفعلي','الفرق'],['إيجار',0,0,{formula:'B2-C2'}],['طعام',0,0,{formula:'B3-C3'}],['مواصلات',0,0,{formula:'B4-C4'}],['الإجمالي',{formula:'SUM(B2:B4)'},{formula:'SUM(C2:C4)'},{formula:'B5-C5'}]],attendance:[['الاسم','التاريخ','الحالة','ملاحظات'],['','','حاضر',''],['','','غائب','']],inventory:[['الصنف','الكمية','سعر الوحدة','الإجمالي'],['',0,0,{formula:'B2*C2'}],['',0,0,{formula:'B3*C3'}],['الإجمالي','','',{formula:'SUM(D2:D3)'}]]};ws.addRows(rows[k]);ws.getRow(1).font={bold:true,color:{argb:'FFFFFFFF'}};ws.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1E40AF'}};ws.columns.forEach(col=>col.width=20);ws.views=[{state:'frozen',ySplit:1}];const b=await wb.xlsx.writeBuffer(),d=await createRec('xls',({budget:'ميزانية',attendance:'سجل حضور',inventory:'مخزون'}[k]),b,1);busy(false);openOffice(d)}catch(e){fail('تعذر إنشاء قالب Excel',e)}});
 wire('nw-xls',async()=>{try{busy(true,'جاري إنشاء الجدول…');const buf=await blankXlsx();const d=await createRec('xls','جدول '+new Date().toLocaleDateString('ar-EG'),buf,1);busy(false);openOffice(d)}catch(e){fail('تعذر إنشاء الجدول',e)}});
 
 // ---------- PDF export (raster pages) ----------
@@ -184,33 +192,25 @@ async function wordView(){
 
 async function wordEdit(){
  let html='<p><br></p>';
- if(!O.opt.newDoc){const mm=await need('mammoth');const r=await mm.convertToHtml({arrayBuffer:O.buf.slice(0)},{convertImage:mm.images.dataUri});html=r.value||html;toast('وضع التعديل بيبسّط التنسيق. حفظك هيتعمل كنسخة جديدة.')}
- O.newDoc=!!O.opt.newDoc;O.wordPage=O.wordPage||{landscape:false,margin:1440};$('#ofm').className='ofscroll';$('#ofm').innerHTML='<div class="ofpg"><div id="oed" contenteditable="true" spellcheck="true"></div></div>';
+ if(!O.opt.newDoc){let hi=null;
+   try{if(window.WordPro&&window.WordPro.importDocx)hi=await window.WordPro.importDocx(O.buf.slice(0))}catch(e){console.warn('importDocx failed, falling back',e)}
+   if(hi){html=hi;toast('اتحافظ على تنسيق المستند الأصلي (خطوط، ألوان، مسافات، جداول، صور). حفظك هيتعمل كنسخة جديدة.')}
+   else{const mm=await need('mammoth');const r=await mm.convertToHtml({arrayBuffer:O.buf.slice(0)},{convertImage:mm.images.dataUri});html=r.value||html;toast('وضع التعديل بيبسّط التنسيق. حفظك هيتعمل كنسخة جديدة.')}}
+ O.newDoc=!!O.opt.newDoc;$('#ofm').className='ofscroll';$('#ofm').innerHTML='<div class="ofpg"><div id="oed" contenteditable="true" spellcheck="true"></div></div>';
  const ed=$('#oed');ed.innerHTML=html;ed.addEventListener('input',()=>O.dirty=1);
  let rg=null;document.addEventListener('selectionchange',O.sc=()=>{const s=getSelection();if(s.rangeCount&&ed.contains(s.anchorNode))rg=s.getRangeAt(0).cloneRange()});
  const restore=()=>{ed.focus();if(rg){const s=getSelection();s.removeAllRanges();s.addRange(rg)}};
+ const wp=window.WordPro?window.WordPro.mount({ed,O,restore,range:()=>rg,buf:O.buf,newDoc:O.newDoc}):{items:{dir:[],table:[],image:[],page:[]}};
  const ex=(c,v)=>()=>{restore();document.execCommand(c,false,v);O.dirty=1};
  const sel=(opts,ph,f)=>{const s=E('select');s.innerHTML='<option value="">'+ph+'</option>'+opts.map(o=>'<option>'+o+'</option>').join('');s.onchange=()=>{if(s.value){f(s.value);s.value=''}};return {el:s}};
  const col=(ph,cmd)=>colorBtn({label:ph,title:cmd==='hiliteColor'||cmd==='backColor'?'لون التظليل':'لون النص',init:cmd==='hiliteColor'||cmd==='backColor'?'#FFFF00':'#FF0000',onPick:c=>{restore();document.execCommand(cmd,false,c);O.dirty=1}});
- const FONTS=['Calibri','Arial','Times New Roman','Tahoma','Verdana','Georgia','Courier New','Segoe UI','Cambria','Trebuchet MS'];
+ const FONTS=['Calibri','Arial','Times New Roman','Tahoma','Verdana','Georgia','Courier New','Segoe UI','Cambria','Trebuchet MS','Traditional Arabic','Simplified Arabic','Sakkal Majalla','Arabic Typesetting','Cairo','Amiri','Tajawal','Almarai','Noto Naskh Arabic','Noto Kufi Arabic'];
  const SIZES=[8,9,10,11,12,14,16,18,20,24,28,32,36,48,72];
  const blockOf=()=>{let n=getSelection().anchorNode;while(n&&n!==ed&&!(n.nodeType===1&&/^(P|DIV|LI|H[1-6]|TD|TH|BLOCKQUOTE)$/.test(n.tagName)))n=n.parentNode;return n&&n!==ed?n:null};
- const tbl=async()=>{const r=await inkAsk('الجدول: صفوف×أعمدة (مثال 3x4)','3x4');if(!r)return;const m=/(\d+)\D+(\d+)/.exec(r);if(!m)return;const R=Math.min(50,+m[1]),C=Math.min(12,+m[2]);
-  let h='<table style="border-collapse:collapse;width:100%">';for(let i=0;i<R;i++){h+='<tr>';for(let j=0;j<C;j++)h+='<td style="border:1px solid #000;padding:4px">&nbsp;</td>';h+='</tr>'}restore();document.execCommand('insertHTML',false,h+'</table><p><br></p>');O.dirty=1};
- const img=()=>{const i=E('input');i.type='file';i.accept='image/*';i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{restore();document.execCommand('insertHTML',false,'<img src="'+r.result+'" style="max-width:100%">');O.dirty=1};r.readAsDataURL(f)};i.click()};
- const dir=d=>()=>{const b=blockOf();if(!b)return;b.setAttribute('dir',d);b.style.textAlign=d==='rtl'?'right':'left';O.dirty=1};
- const tableCell=()=>{const n=getSelection().anchorNode,el=n&&(n.nodeType===1?n:n.parentElement),td=el&&el.closest&&el.closest('td,th');return td&&ed.contains(td)?td:null};
- const tableOp=async op=>{const td=tableCell();if(!td)return alert('حط المؤشر داخل خلية في الجدول الأول.');const tr=td.parentElement,tbl=tr.parentElement.closest('table');if(!tbl)return;
-  if(op==='row+')tr.parentElement.insertBefore(tr.cloneNode(true),tr.nextSibling);
-  if(op==='row-'){if(tbl.rows.length<2)return alert('لازم يفضل صف واحد على الأقل.');tr.remove()}
-  if(op==='col+'){const i=td.cellIndex;[...tbl.rows].forEach(r=>{const c=r.cells[i].cloneNode(true);c.innerHTML='&nbsp;';r.insertBefore(c,r.cells[i].nextSibling)})}
-  if(op==='col-'){const i=td.cellIndex;if(tr.cells.length<2)return alert('لازم يفضل عمود واحد على الأقل.');[...tbl.rows].forEach(r=>r.cells[i]&&r.cells[i].remove())}O.dirty=1};
- const pageSetup=async()=>{const o=await inkAsk('اتجاه الصفحة: اكتب رأسي أو أفقي','رأسي');if(!o)return;const landscape=/أفقي/.test(o);const m=await inkAsk('الهامش بالبوصة (0.5 إلى 1.5)','1');if(m===null)return;const inch=Math.max(.5,Math.min(1.5,parseFloat(m)||1));O.wordPage={landscape,margin:Math.round(inch*1440)};O.dirty=1;toast('إعداد الصفحة هيتطبق عند الحفظ')};
- const replaceText=async()=>{const a=await inkAsk('ابحث عن النص');if(!a)return;const b=await inkAsk('استبدال بـ');if(b===null)return;let count=0;const w=document.createTreeWalker(ed,NodeFilter.SHOW_TEXT);const ns=[];while(w.nextNode())ns.push(w.currentNode);ns.forEach(n=>{if(n.nodeValue.includes(a)){const parts=n.nodeValue.split(a);count+=parts.length-1;n.nodeValue=parts.join(b)}});if(count)O.dirty=1;toast(count?'تم استبدال '+count+' موضع':'ملقتش النص')};
+ const replaceText=async()=>{const a=await raAsk('ابحث عن النص');if(!a)return;const b=await raAsk('استبدال بـ');if(b===null)return;let count=0;const w=document.createTreeWalker(ed,NodeFilter.SHOW_TEXT);const ns=[];while(w.nextNode())ns.push(w.currentNode);ns.forEach(n=>{if(n.nodeValue.includes(a)){const parts=n.nodeValue.split(a);count+=parts.length-1;n.nodeValue=parts.join(b)}});if(count)O.dirty=1;toast(count?'تم استبدال '+count+' موضع':'ملقتش النص')};
  const stats=()=>{const t=(ed.innerText||'').trim(),words=t? t.split(/\s+/).length:0;toast('الكلمات: '+words+' · الأحرف: '+t.length)};
  const insertTOC=()=>{const hs=[...ed.querySelectorAll('h1,h2,h3')].map(h=>({tag:h.tagName,text:(h.innerText||'').trim()})).filter(x=>x.text);if(!hs.length){toast('استخدم أنماط عنوان 1 أو 2 أو 3 أولاً');return}const html='<div data-reader-toc="1"><h2>جدول المحتويات</h2><ol>'+hs.map(x=>'<li style="margin-right:'+((+x.tag.slice(1)-1)*18)+'px">'+esc(x.text)+'</li>').join('')+'</ol></div><p><br></p>';restore();document.execCommand('insertHTML',false,html);O.dirty=1;toast('تم إدراج جدول المحتويات؛ حدّثه بإعادة إدراجه بعد تعديل العناوين')};
  const insertDate=()=>{restore();document.execCommand('insertText',false,new Date().toLocaleDateString('ar-EG'));O.dirty=1};
- const insertPageBreak=()=>{restore();document.execCommand('insertHTML',false,'<p data-page-break="1"><br></p>');O.dirty=1};
  setBar([
   {t:'💾',title:'حفظ',f:save},{t:'⬇ DOCX',f:async()=>{await save(1)}},'|',
   {t:'↶',f:ex('undo'),title:'تراجع'},{t:'↷',f:ex('redo'),title:'إعادة'},'|',
@@ -220,15 +220,15 @@ async function wordEdit(){
   (()=>{const n=E('input');n.type='number';n.min=1;n.max=999;n.step=1;n.inputMode='numeric';n.placeholder='حجم';n.title='حجم الخط بالرقم (pt)';n.style.cssText='flex:none;width:64px;padding:6px 6px;font-size:14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);text-align:center';const ap=()=>{const v=+n.value;if(!(v>0))return;restore();document.execCommand('fontSize',false,'7');ed.querySelectorAll('font[size="7"]').forEach(f=>{f.removeAttribute('size');f.style.fontSize=Math.min(999,v)+'pt'});O.dirty=1};n.onchange=ap;n.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();ap()}};return {el:n}})(),
   col('A لون','foreColor'),col('🖍 تظليل','hiliteColor'),colorBtn({label:'▦ لون الخلية',title:'لون الخلية الحالية',init:'#FFF2CC',onPick:c=>{restore();const n=getSelection().anchorNode,el=n&&(n.nodeType===1?n:n.parentElement),td=el&&el.closest&&el.closest('td,th');if(!td||!ed.contains(td)){alert('اضغط جوه خلية في الجدول الأول.');return}td.style.background=c;O.dirty=1}}),'|',
   {t:'⬅',f:ex('justifyLeft'),title:'يسار'},{t:'↔',f:ex('justifyCenter'),title:'وسط'},{t:'➡',f:ex('justifyRight'),title:'يمين'},{t:'☰',f:ex('justifyFull'),title:'ضبط'},
-  {t:'RTL',f:dir('rtl')},{t:'LTR',f:dir('ltr')},'|',
+  ...wp.items.dir,'|',
   {t:'• قائمة',f:ex('insertUnorderedList')},{t:'1. قائمة',f:ex('insertOrderedList')},
   sel(['عنوان 1','عنوان 2','عنوان 3','عنوان 4','فقرة','اقتباس'],'النمط',v=>{restore();document.execCommand('formatBlock',false,{'عنوان 1':'H1','عنوان 2':'H2','عنوان 3':'H3','عنوان 4':'H4','فقرة':'P','اقتباس':'BLOCKQUOTE'}[v]);O.dirty=1}),'|',
   {t:'x²',title:'مرتفع',f:ex('superscript')},{t:'x₂',title:'منخفض',f:ex('subscript')},{t:'مسافة بادئة +',f:ex('indent')},{t:'مسافة بادئة −',f:ex('outdent')},{t:'مسح التنسيق',f:ex('removeFormat')},
-  {t:'▦ جدول',f:tbl},{t:'＋ صف',f:()=>tableOp('row+')},{t:'− صف',f:()=>tableOp('row-')},{t:'＋ عمود',f:()=>tableOp('col+')},{t:'− عمود',f:()=>tableOp('col-')},{t:'🖼 صورة',f:img},{t:'🎙 إملاء صوتي',f:()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('الإملاء الصوتي غير مدعوم على هذا الجهاز أو المتصفح');return}const rec=new SR();rec.lang='ar-EG';rec.interimResults=false;rec.maxAlternatives=1;restore();toast('اتكلم الآن…');rec.onresult=e=>{const t=e.results&&e.results[0]&&e.results[0][0]&&e.results[0][0].transcript;if(t){restore();document.execCommand('insertText',false,t+' ');O.dirty=1}};rec.onerror=e=>toast('تعذر الإملاء الصوتي: '+(e.error||'حاول مرة أخرى'));rec.start()}},'|',
-  {t:'📄 إعداد الصفحة',f:pageSetup},{t:'فاصل صفحة',f:insertPageBreak},{t:'📑 فهرس تلقائي',f:insertTOC},{t:'📅 تاريخ',f:insertDate},{t:'بحث/استبدال',f:replaceText},{t:'🔢 إحصاء',f:stats},{t:'⬇ PDF',f:pdf},{t:'🖨 طباعة',f:printOffice},{t:'🔐 نسخة مشفرة',f:encryptedExport}]);
- async function save(dlOnly){try{busy(true,'جاري الحفظ…');const dx=await need('dx');const blob=await htmlToDocx(dx,ed),buf=await blob.arrayBuffer();await saveBuf(buf);busy(false);if(dlOnly===1)dl(new Blob([buf],{type:MIME.doc}),O.d.n+'.docx');else toast('اتحفظ ✅')}catch(e){fail('فشل الحفظ',e)}}
- async function pdf(){let box;try{busy(true,'جاري تحويل PDF…');box=E('div','ofprint');box.innerHTML=ed.innerHTML;document.body.append(box);const b=await longToPdf(box,1.4142);box.remove();busy(false);dl(b,O.d.n+'.pdf')}catch(e){box&&box.remove();fail('فشل التصدير',e)}}
- O.cleanup=()=>document.removeEventListener('selectionchange',O.sc)}
+  ...wp.items.table,...wp.items.image,{t:'🎙 إملاء صوتي',f:()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('الإملاء الصوتي غير مدعوم على هذا الجهاز أو المتصفح');return}const rec=new SR();rec.lang='ar-EG';rec.interimResults=false;rec.maxAlternatives=1;restore();toast('اتكلم الآن…');rec.onresult=e=>{const t=e.results&&e.results[0]&&e.results[0][0]&&e.results[0][0].transcript;if(t){restore();document.execCommand('insertText',false,t+' ');O.dirty=1}};rec.onerror=e=>toast('تعذر الإملاء الصوتي: '+(e.error||'حاول مرة أخرى'));rec.start()}},'|',
+  ...wp.items.page,{t:'📑 فهرس تلقائي',f:insertTOC},{t:'📅 تاريخ',f:insertDate},{t:'بحث/استبدال',f:replaceText},{t:'🔢 إحصاء',f:stats},{t:'⬇ PDF',f:pdf},{t:'🖨 طباعة',f:printOffice},{t:'🔐 نسخة مشفرة',f:encryptedExport}]);
+ async function save(dlOnly){try{busy(true,'جاري الحفظ…');const dx=await need('dx');const blob=await htmlToDocx(dx,ed,{live:1}),buf=await blob.arrayBuffer();await saveBuf(buf);busy(false);if(dlOnly===1)dl(new Blob([buf],{type:MIME.doc}),O.d.n+'.docx');else toast('اتحفظ ✅')}catch(e){fail('فشل الحفظ',e)}}
+ async function pdf(){let box;try{busy(true,'جاري تحويل PDF…');box=E('div','ofprint');box.innerHTML=ed.innerHTML;const ratio=window.WordPro?window.WordPro.printBox(box):1.4142;document.body.append(box);const b=await longToPdf(box,ratio);box.remove();busy(false);dl(b,O.d.n+'.pdf')}catch(e){box&&box.remove();fail('فشل التصدير',e)}}
+ O.cleanup=()=>{document.removeEventListener('selectionchange',O.sc);wp.cleanup&&wp.cleanup()}}
 
 // ---- HTML -> DOCX ----
 const hex=c=>{const m=/rgba?\((\d+)[, ]+(\d+)[, ]+(\d+)(?:[, /]+([\d.]+))?/.exec(c||'');if(!m)return null;if(m[4]!==undefined&&+m[4]===0)return null;return [m[1],m[2],m[3]].map(x=>(+x).toString(16).padStart(2,'0')).join('').toUpperCase()};
@@ -240,16 +240,19 @@ function runStyle(el,root){const cs=getComputedStyle(el),st={};
  if(u)st.underline={};if(s)st.strike=true;if(bg)st.shading={type:'clear',fill:bg,color:'auto'};
  const c=hex(cs.color);if(c&&c!=='000000')st.color=c;
  const sz=parseFloat(cs.fontSize);if(sz)st.size=Math.max(2,Math.round(sz*1.5));
- const fn=cs.fontFamily.split(',')[0].replace(/["']/g,'').trim();if(fn&&!GEN.test(fn))st.font=fn;return st}
-function imgRun(dx,im){const m=/^data:image\/(png|jpe?g|gif|bmp);base64,(.*)$/i.exec(im.src||'');if(!m)return null;
+ const fn=cs.fontFamily.split(',')[0].replace(/["']/g,'').trim();if(fn&&!GEN.test(fn))st.font={ascii:fn,hAnsi:fn,cs:fn,eastAsia:fn};return st}
+function imgRun(dx,im,root){const m=/^data:image\/(png|jpe?g|gif|bmp);base64,(.*)$/i.exec(im.src||'');if(!m)return null;
  const bin=atob(m[2]),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
- let w=im.naturalWidth||im.width||300,h=im.naturalHeight||im.height||200;if(w>520){h=h*520/w;w=520}
+ const nw=im.naturalWidth||im.width||300,nh=im.naturalHeight||im.height||200,W=window.WordPro;let w=nw,h=nh;
+ if(W&&root&&im.isConnected&&root.clientWidth){const cs=getComputedStyle(root),cw=root.clientWidth-(parseFloat(cs.paddingLeft)||0)-(parseFloat(cs.paddingRight)||0),rw=im.getBoundingClientRect().width;if(cw>0&&rw>0){w=rw/cw*W.contentPx();h=nh*w/nw}}
+ else if(W&&im.dataset&&im.dataset.wp){w=+im.dataset.wp/100*W.contentPx();h=nh*w/nw}
+ const cap=W?W.contentPx():520;if(w>cap){h=h*cap/w;w=cap}
  const t=/jpe?g/i.test(m[1])?'jpg':m[1].toLowerCase();return new dx.ImageRun({data:u,transformation:{width:Math.round(w),height:Math.round(h)},type:t})}
 function runs(dx,nodes,root,out){
  for(const n of nodes){
   if(n.nodeType===3){const t=n.nodeValue.replace(/\u00a0/g,' ').replace(/[\r\n\t]+/g,' ');if(!t)continue;const p=n.parentElement;out.push(new dx.TextRun({text:t,...runStyle(p,root),rightToLeft:AR.test(t)||undefined}))}
   else if(n.nodeType===1){const tg=n.tagName;if(tg==='BR'){out.push(new dx.TextRun({break:1}));continue}
-   if(tg==='IMG'){const r=imgRun(dx,n);r&&out.push(r);continue}
+   if(tg==='IMG'){const r=imgRun(dx,n,root);r&&out.push(r);continue}
    if(/^(UL|OL|TABLE)$/.test(tg))continue;
    runs(dx,n.childNodes,root,out)}}}
 const ALIGN=(dx,el,bidi)=>{const cs=getComputedStyle(el);let a=cs.textAlign,vis=a==='center'?'center':a==='justify'?'justify':a==='right'||(a==='start'&&bidi)||(a==='end'&&!bidi)?'right':'left';
@@ -258,13 +261,20 @@ const ALIGN=(dx,el,bidi)=>{const cs=getComputedStyle(el);let a=cs.textAlign,vis=
 function para(dx,el,nodes,root,x){
  nodes=[...nodes];while(nodes.length&&nodes[nodes.length-1].nodeName==='BR')nodes.pop();
  const out=[];runs(dx,nodes,root,out);const txt=nodes.map(n=>n.textContent||'').join(''),fs=firstStrong(txt);
- const dv=el.getAttribute&&el.getAttribute('dir'),bidi=dv==='rtl'?true:dv==='ltr'?false:fs===1;
+ const dc=el.closest&&el.closest('[dir]'),dv=dc&&dc.getAttribute('dir'),bidi=dv==='rtl'?true:dv==='ltr'?false:fs===1;
  const cs=getComputedStyle(el),H={1:dx.HeadingLevel.HEADING_1,2:dx.HeadingLevel.HEADING_2,3:dx.HeadingLevel.HEADING_3,4:dx.HeadingLevel.HEADING_4,5:dx.HeadingLevel.HEADING_5,6:dx.HeadingLevel.HEADING_6};
- const o={children:out,bidirectional:bidi||undefined,alignment:ALIGN(dx,el,bidi),spacing:{after:Math.round((parseFloat(cs.marginBottom)||0)*15)},pageBreakBefore:el&&el.dataset&&el.dataset.pageBreak==='1'||undefined,...x};
- const m=/^H([1-6])$/.exec(el.tagName||'');if(m&&!x.noHead)o.heading=H[+m[1]];delete o.noHead;return new dx.Paragraph(o)}
+ const ist=el.style||{},px=v=>Math.round((parseFloat(v)||0)*15),isLi=el.tagName==='LI',spc={after:px(cs.marginBottom)};
+  const o={children:out,bidirectional:bidi||undefined,alignment:ALIGN(dx,el,bidi),spacing:spc,pageBreakBefore:(PB||(el&&el.dataset&&el.dataset.pb==='1'))||undefined,...x};
+  if(ist.marginTop&&!isLi)spc.before=px(cs.marginTop);
+  if(ist.lineHeight&&cs.lineHeight!=='normal'){const fs=parseFloat(cs.fontSize)||16;if(/pt$/.test(ist.lineHeight)){spc.line=Math.round(parseFloat(ist.lineHeight)*20);spc.lineRule='exact'}else{spc.line=Math.max(120,Math.round(parseFloat(cs.lineHeight)/fs*240));spc.lineRule='auto'}}
+  if(!isLi){const ind={};if(ist.marginInlineStart||ist.marginInlineEnd||ist.marginLeft||ist.marginRight){const ml=px(cs.marginLeft),mr=px(cs.marginRight);if(bidi){ind.start=mr;ind.end=ml}else{ind.start=ml;ind.end=mr}}
+   if(ist.textIndent){const ti=px(cs.textIndent);if(ti>0)ind.firstLine=ti;else if(ti<0)ind.hanging=-ti}if(Object.keys(ind).length)o.indent=ind}
+  const pbg=(ist.backgroundColor||ist.background)&&hex(cs.backgroundColor);if(pbg)o.shading={type:'clear',fill:pbg,color:'auto'};
+  {const bd={};for(const [S,k] of [['Top','top'],['Bottom','bottom'],['Left','left'],['Right','right']]){const w=parseFloat(cs['border'+S+'Width'])||0;if(w&&cs['border'+S+'Style']!=='none'&&ist['border'+S])bd[k]={style:'single',size:Math.max(2,Math.round(w*6)),color:hex(cs['border'+S+'Color'])||'000000',space:2}}if(Object.keys(bd).length)o.border=bd}
+ const m=/^H([1-6])$/.exec(el.tagName||'');if(m&&!x.noHead)o.heading=H[+m[1]];delete o.noHead;PB=false;return new dx.Paragraph(o)}
 const BLK=/^(P|DIV|H[1-6]|UL|OL|LI|TABLE|BLOCKQUOTE|PRE|SECTION)$/;
 const hasBlk=n=>[...n.children].some(c=>BLK.test(c.tagName));
-let LI=0;
+let LI=0,PB=false;
 function lst(dx,el,root,out,lvl,inst,ord){for(const li of el.children){if(li.tagName!=='LI')continue;const sub=[],nodes=[];
   for(const c of li.childNodes){if(c.nodeType===1&&/^(UL|OL)$/.test(c.tagName))sub.push(c);else nodes.push(c)}
   out.push(para(dx,li,nodes,root,ord?{numbering:{reference:'num',level:Math.min(lvl,3),instance:inst}}:{bullet:{level:Math.min(lvl,3)}}));
@@ -272,22 +282,29 @@ function lst(dx,el,root,out,lvl,inst,ord){for(const li of el.children){if(li.tag
 function blocks(dx,parent,root,out){let pend=[];
  const flush=()=>{if(pend.some(n=>n.nodeType===1||/\S/.test(n.nodeValue||'')))out.push(para(dx,parent,pend,root,{}));pend=[]};
  for(const n of parent.childNodes){
+  if(n.nodeType===1&&n.dataset&&n.dataset.pageBreak==='1'){flush();PB=true;continue}
   if(n.nodeType===1&&BLK.test(n.tagName)){flush();const tg=n.tagName;
    if(tg==='UL'||tg==='OL')lst(dx,n,root,out,0,tg==='OL'?++LI:0,tg==='OL');
-   else if(tg==='TABLE')out.push(tbl(dx,n,root));
+   else if(tg==='TABLE'){if(PB){out.push(new dx.Paragraph({pageBreakBefore:true}));PB=false}out.push(tbl(dx,n,root))}
    else if(hasBlk(n)&&!/^H/.test(tg))blocks(dx,n,root,out);
    else out.push(para(dx,n,n.childNodes,root,{}))}
   else if(n.nodeType===1&&n.tagName==='TABLE'){flush();out.push(tbl(dx,n,root))}
   else pend.push(n)}
  flush()}
-function tbl(dx,t,root){
- const rows=[...t.rows].map(tr=>new dx.TableRow({children:[...tr.cells].map(td=>{const ch=[];blocks(dx,td,root,ch);if(!ch.length)ch.push(new dx.Paragraph({}));
-  const bg=hex(getComputedStyle(td).backgroundColor),o={children:ch};if(td.colSpan>1)o.columnSpan=td.colSpan;if(td.rowSpan>1)o.rowSpan=td.rowSpan;if(bg)o.shading={type:'clear',fill:bg,color:'auto'};return new dx.TableCell(o)})}));
- return new dx.Table({rows,width:{size:100,type:dx.WidthType.PERCENTAGE},visuallyRightToLeft:AR.test(t.textContent||'')&&firstStrong(t.textContent||'')===1})}
-async function htmlToDocx(dx,ed){LI=0;const ch=[];blocks(dx,ed,ed,ch);if(!ch.length)ch.push(new dx.Paragraph({}));
- const doc=new dx.Document({styles:{default:{document:{run:{font:'Calibri',size:24}}}},
+function tbl(dx,t,root){const W=window.WordPro,live=!!W&&t.isConnected,M=live?W.measure(t,root):null,hint=AR.test(t.textContent||'')&&firstStrong(t.textContent||'')===1,
+  rtl=W?(()=>{const dc=t.closest('[dir]'),v=dc&&dc.getAttribute('dir');return v==='rtl'?true:v==='ltr'?false:hint})():hint;
+ const rows=[...t.rows].map(tr=>{const cells=[...tr.cells].map(td=>{const ch=[];blocks(dx,td,root,ch);if(!ch.length)ch.push(new dx.Paragraph({}));
+  const bg=hex(getComputedStyle(td).backgroundColor),o={children:ch};if(td.colSpan>1)o.columnSpan=td.colSpan;if(td.rowSpan>1)o.rowSpan=td.rowSpan;if(bg)o.shading={type:'clear',fill:bg,color:'auto'};
+  if(live){o.borders=W.cellBorders(dx,td,rtl);const va=td.style.verticalAlign;if(va==='middle')o.verticalAlign=dx.VerticalAlign.CENTER;else if(va==='bottom')o.verticalAlign=dx.VerticalAlign.BOTTOM;if(M){const w=M.cellW(td);if(w)o.width={size:w,type:dx.WidthType.DXA}}}
+  return new dx.TableCell(o)});const ro={children:cells};if(tr.dataset&&tr.dataset.hdr==='1')ro.tableHeader=true;return new dx.TableRow(ro)});
+ const o={rows,visuallyRightToLeft:rtl};
+ if(M){o.width={size:M.total,type:dx.WidthType.DXA};o.columnWidths=M.cols;o.layout=dx.TableLayoutType.FIXED}else o.width={size:100,type:dx.WidthType.PERCENTAGE};
+ if(live){o.borders=dx.TableBorders.NONE;const al=W.tableAlign(dx,t,rtl);if(al)o.alignment=al}
+ return new dx.Table(o)}
+async function htmlToDocx(dx,ed,opt){LI=0;PB=false;const ch=[];blocks(dx,ed,ed,ch);if(PB){ch.push(new dx.Paragraph({pageBreakBefore:true}));PB=false}if(!ch.length)ch.push(new dx.Paragraph({}));
+ const doc=new dx.Document({styles:{default:{document:{run:{font:{ascii:'Calibri',hAnsi:'Calibri',cs:'Arial',eastAsia:'Calibri'},size:24}}}},
   numbering:{config:[{reference:'num',levels:[0,1,2,3].map(l=>({level:l,format:dx.LevelFormat.DECIMAL,text:'%'+(l+1)+'.',alignment:dx.AlignmentType.START,style:{paragraph:{indent:{left:720*(l+1),hanging:360}}}}))}]},
-  sections:[{properties:{page:{size:O&&O.wordPage&&O.wordPage.landscape?{width:16838,height:11906}:{width:11906,height:16838},margin:{top:O&&O.wordPage?O.wordPage.margin:1440,right:O&&O.wordPage?O.wordPage.margin:1440,bottom:O&&O.wordPage?O.wordPage.margin:1440,left:O&&O.wordPage?O.wordPage.margin:1440}}},children:ch}]});
+  sections:[Object.assign({children:ch},window.WordPro?window.WordPro.section(dx,opt&&opt.live?O:null):{properties:{}})]});
  return dx.Packer.toBlob(doc)}
 
 // ====================== EXCEL ======================
@@ -465,15 +482,15 @@ function sortCol(asc){pushU();const sh=curSh(),q=rng(),rows=[];let last=-1;for(c
  rows.sort((a,b)=>{const x=a.key,y=b.key;if(x===undefined)return 1;if(y===undefined)return -1;const d=typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),'ar');return asc?d:-d});
  for(let r=r1;r<=r2;r++)for(let c=0;c<sh.NC;c++)delete sh.cells[K(r,c)];
  rows.forEach((x,i)=>{for(const c in x.row)sh.cells[K(r1+i,+c)]=x.row[c]});recalc(sh,true).then(xrender)}
-async function xformula(){const q=rng(),range=colName(q.c1)+(q.r1+1)+':'+colName(q.c2)+(q.r2+1);const opts=['SUM','AVERAGE','MIN','MAX','COUNT','COUNTA','COUNTBLANK','PRODUCT','MEDIAN','MODE','STDEV','VAR','ABS','ROUND','ROUNDUP','ROUNDDOWN','INT','MOD','SQRT','POWER','IF','IFERROR','AND','OR','NOT','SUMIF','COUNTIF','AVERAGEIF','CONCATENATE','LEFT','RIGHT','MID','LEN','UPPER','LOWER','TRIM'];const f=await inkAsk('اكتب اسم الدالة:\n'+opts.join(' · '),'SUM');if(!f)return;const fn=f.trim().toUpperCase();if(!opts.includes(fn))return toast('اسم الدالة غير موجود بالقائمة');let args=range;if(!['SUM','AVERAGE','MIN','MAX','COUNT','COUNTA','COUNTBLANK','PRODUCT','MEDIAN','MODE','STDEV','VAR'].includes(fn)){const ex={IF:'A1>0,\"نعم\",\"لا\"',IFERROR:'A1/B1,0',ROUND:'A1,2',ROUNDUP:'A1,0',ROUNDDOWN:'A1,0',MOD:'A1,2',POWER:'A1,2',LEFT:'A1,3',RIGHT:'A1,3',MID:'A1,2,3',SUMIF:'A1:A10,\">0\",B1:B10',COUNTIF:'A1:A10,\">0\"',AVERAGEIF:'A1:A10,\">0\"',CONCATENATE:'A1,B1',AND:'A1>0,B1>0',OR:'A1>0,B1>0',NOT:'A1>0'};const a=await inkAsk('اكتب معاملات '+fn+' بدون علامة ='+fn+' (مثال: '+(ex[fn]||'A1')+')',ex[fn]||'A1');if(a===null)return;args=a.trim()}commit('='+fn+'('+args+')',q.r1,q.c1)}
+async function xformula(){const q=rng(),range=colName(q.c1)+(q.r1+1)+':'+colName(q.c2)+(q.r2+1);const opts=['SUM','AVERAGE','MIN','MAX','COUNT','COUNTA','COUNTBLANK','PRODUCT','MEDIAN','MODE','STDEV','VAR','ABS','ROUND','ROUNDUP','ROUNDDOWN','INT','MOD','SQRT','POWER','IF','IFERROR','AND','OR','NOT','SUMIF','COUNTIF','AVERAGEIF','CONCATENATE','LEFT','RIGHT','MID','LEN','UPPER','LOWER','TRIM'];const f=await raAsk('اكتب اسم الدالة:\n'+opts.join(' · '),'SUM');if(!f)return;const fn=f.trim().toUpperCase();if(!opts.includes(fn))return toast('اسم الدالة غير موجود بالقائمة');let args=range;if(!['SUM','AVERAGE','MIN','MAX','COUNT','COUNTA','COUNTBLANK','PRODUCT','MEDIAN','MODE','STDEV','VAR'].includes(fn)){const ex={IF:'A1>0,\"نعم\",\"لا\"',IFERROR:'A1/B1,0',ROUND:'A1,2',ROUNDUP:'A1,0',ROUNDDOWN:'A1,0',MOD:'A1,2',POWER:'A1,2',LEFT:'A1,3',RIGHT:'A1,3',MID:'A1,2,3',SUMIF:'A1:A10,\">0\",B1:B10',COUNTIF:'A1:A10,\">0\"',AVERAGEIF:'A1:A10,\">0\"',CONCATENATE:'A1,B1',AND:'A1>0,B1>0',OR:'A1>0,B1>0',NOT:'A1>0'};const a=await raAsk('اكتب معاملات '+fn+' بدون علامة ='+fn+' (مثال: '+(ex[fn]||'A1')+')',ex[fn]||'A1');if(a===null)return;args=a.trim()}commit('='+fn+'('+args+')',q.r1,q.c1)}
 function xclear(){const q=rng(),sh=curSh();pushU();for(let r=q.r1;r<=q.r2;r++)for(let c=q.c1;c<=q.c2;c++){const k=K(r,c),o=sh.cells[k];if(o){delete o.v;delete o.f;delete o.cv;if(!o.s||!Object.keys(o.s).length)delete sh.cells[k]}}recalc(sh,true).then(()=>{xrender();loadFB()})}
-async function xfindreplace(){const find=await inkAsk('ابحث عن:', '');if(!find)return;const rep=await inkAsk('استبدال بـ (اتركه فارغًا للحذف):','');const sh=curSh();let n=0;pushU();for(const k in sh.cells){const o=sh.cells[k];if(typeof o.v==='string'&&o.v.includes(find)){o.v=o.v.split(find).join(rep);n++}}xrender();loadFB();toast('تم استبدال '+n+' خلية')}
+async function xfindreplace(){const find=await raAsk('ابحث عن:', '');if(!find)return;const rep=await raAsk('استبدال بـ (اتركه فارغًا للحذف):','');const sh=curSh();let n=0;pushU();for(const k in sh.cells){const o=sh.cells[k];if(typeof o.v==='string'&&o.v.includes(find)){o.v=o.v.split(find).join(rep);n++}}xrender();loadFB();toast('تم استبدال '+n+' خلية')}
 function xinsertDate(){const q=rng();commit(String(d2s(new Date())),q.r1,q.c1).then(()=>setS('nf','dd/mm/yyyy'))}
 function xduplicateSheet(){const sh=curSh(),copy=JSON.parse(JSON.stringify(sh));let name=(sh.name+' Copy').slice(0,31),base=name,i=2;while(XS.X.sheets.some(x=>x.name===name)){name=(base.slice(0,27)+' '+i++).slice(0,31)}pushU();copy.name=name;XS.X.sheets.splice(XS.cur+1,0,copy);XS.cur++;xtabs();xrender();loadFB()}
 function xtabs(){const t=$('#xtabs');t.innerHTML='';XS.X.sheets.forEach((sh,i)=>{const b=E('button',i===XS.cur?'on':'');b.textContent=sh.name;b.onclick=()=>{XS.cur=i;XS.sel={r1:0,c1:0,r2:0,c2:0};$('#xg').scrollTop=0;xtabs();xrender();loadFB()};t.append(b)});
  const add=E('button','',' ＋ ');add.onclick=()=>{pushU();let n=XS.X.sheets.length+1;while(XS.X.sheets.some(s=>s.name==='Sheet'+n))n++;XS.X.sheets.push(newSheet('Sheet'+n));XS.cur=XS.X.sheets.length-1;xtabs();xrender();loadFB()};
- const ren=E('button','','✎');ren.onclick=async()=>{const n=await inkAsk('اسم الشيت:',curSh().name);if(n&&n.trim()&&!XS.X.sheets.some((s,i)=>i!==XS.cur&&s.name===n.trim())){pushU();curSh().name=n.trim().slice(0,31);xtabs()}};
- const del=E('button','','🗑');del.onclick=async()=>{if(XS.X.sheets.length<2)return toast('لازم يفضل شيت واحد على الأقل');if(await inkConfirm('حذف الشيت "'+curSh().name+'"؟')){pushU();XS.X.sheets.splice(XS.cur,1);XS.cur=Math.max(0,XS.cur-1);xtabs();xrender();loadFB()}};
+ const ren=E('button','','✎');ren.onclick=async()=>{const n=await raAsk('اسم الشيت:',curSh().name);if(n&&n.trim()&&!XS.X.sheets.some((s,i)=>i!==XS.cur&&s.name===n.trim())){pushU();curSh().name=n.trim().slice(0,31);xtabs()}};
+ const del=E('button','','🗑');del.onclick=async()=>{if(XS.X.sheets.length<2)return toast('لازم يفضل شيت واحد على الأقل');if(await raConfirm('حذف الشيت "'+curSh().name+'"؟')){pushU();XS.X.sheets.splice(XS.cur,1);XS.cur=Math.max(0,XS.cur-1);xtabs();xrender();loadFB()}};
  t.append(add,ren,del)}
 function xbar(){
  const nfs={'عام':'General','رقم 0.00':'0.00','1,234':'#,##0','1,234.00':'#,##0.00','نسبة %':'0.00%','تاريخ':'yyyy-mm-dd','dd/mm/yyyy':'dd/mm/yyyy','نص':'@','عملة $':'"$"#,##0.00'};
@@ -737,8 +754,8 @@ const CP_THEME=['#FFFFFF','#000000','#E7E6E6','#44546A','#4472C4','#ED7D31','#A5
 CP_STD=['#C00000','#FF0000','#FFC000','#FFFF00','#92D050','#00B050','#00B0F0','#0070C0','#002060','#7030A0'],
 CP_TN=['أبيض','أسود','رمادي فاتح','أزرق داكن','تمييز 1','تمييز 2','تمييز 3','تمييز 4','تمييز 5','تمييز 6'];
 const cpShade=(h,t)=>{const n=parseInt(h.slice(1),16),c=[n>>16,(n>>8)&255,n&255].map(v=>Math.max(0,Math.min(255,Math.round(t>0?v+(255-v)*t:v*(1+t)))));return '#'+c.map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase()};
-const cpRecent=()=>{try{return JSON.parse(localStorage.getItem('inkcol')||'[]')}catch(e){return[]}};
-const cpPush=c=>{try{localStorage.setItem('inkcol',JSON.stringify([c,...cpRecent().filter(x=>x!==c)].slice(0,10)))}catch(e){}};
+const cpRecent=()=>{try{return JSON.parse(localStorage.getItem('racol')||'[]')}catch(e){return[]}};
+const cpPush=c=>{try{localStorage.setItem('racol',JSON.stringify([c,...cpRecent().filter(x=>x!==c)].slice(0,10)))}catch(e){}};
 let cpOpen=null;
 function cpClose(){if(cpOpen){cpOpen.remove();cpOpen=null}}
 document.addEventListener('pointerdown',e=>{if(cpOpen&&!e.target.closest('.cpop,.cpb'))cpClose()},true);

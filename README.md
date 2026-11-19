@@ -13,7 +13,7 @@ The output is `Reader All.apk` in the project root.
 
 ## Android application identity
 
-- Android application ID / Capacitor appId: `com.readerall.app`. This is a new app identity; Android installs it as a separate app rather than updating an existing `com.inkpad.app` installation.
+- Android application ID / Capacitor appId: `com.readerall.app`. This is a new app identity; Android installs it as a separate app, independent of any other app you have installed.
 - Keep this ID unchanged for future releases. Changing it again creates another separate app.
 
 ## Android integration
@@ -27,7 +27,7 @@ The APK must be rebuilt and installed for these Android changes to take effect. 
 
 - Audio embedded in PowerPoint (except MIDI, which is a note-event format rather than encoded audio) is converted to MP3 automatically in the background. Converted audio is cached in the app's document store and reused when the same presentation is reopened; the original embedded media is preserved.
 - WMA files can be inserted into PowerPoint slides. Playback uses the background MP3 cache when conversion succeeds; if the device cannot decode WMA and conversion is unavailable, the player attempts an in-memory fallback without modifying the original.
-- Full `.inkbak` backups include Word, Excel, PowerPoint and note records, their primary binary data, attached/cached media and Reader All local preferences. Restore remains compatible with older notes-only backup files. PDF records are intentionally excluded because PDF viewing is not part of this app.
+- Full `.rabak` backups (older `.inkbak` backups can still be restored) include Word, Excel, PowerPoint and note records, their primary binary data, attached/cached media and Reader All local preferences. Restore remains compatible with older notes-only backup files. PDF records are intentionally excluded because PDF viewing is not part of this app.
 
 ## Stable signing key (so every build installs over the previous one)
 
@@ -44,3 +44,19 @@ Save the output as a GitHub repository secret named `DEBUG_KEYSTORE_B64` (Settin
 ## Dependencies
 
 Run `npm install` once and commit the generated `package-lock.json`; the workflow then uses `npm ci` for reproducible builds. Excel support uses SheetJS 0.20.3 from the official tarball (the npm registry copy 0.18.5 has known vulnerabilities).
+
+
+## Internal names
+
+All internal identifiers use the Reader All name: IndexedDB `readerall`, localStorage keys `ra*`, JS globals `ra*`, backup extension `.rabak`, encrypted-file extension `.raenc`. On first launch after upgrading, data from the old `inkpad` database and old `ink*` preference keys is copied over automatically; old `.inkbak` / `.inkenc` files can still be opened.
+
+## Word editor (v4.3 — wordpro.js)
+
+- **Tables**: insert dialog (rows, columns, header row, borders, width, direction) and a ⚙ panel: add/delete rows and columns, merge/split cells, header row that repeats on every page, borders (all/none/outer/inner/horizontal/vertical, colour, thickness), cell alignment and shading, column widths, table width/alignment/direction, zebra rows, delete table. Borders, widths, merges and vertical alignment are exported to .docx.
+- **Images**: tap an image to resize (%, cm), align, or delete; large photos are down-scaled and converted to PNG/JPEG on insert; paste from clipboard works. Size is exported relative to the page content width.
+- **Arabic / direction**: 🌐 panel sets RTL / LTR / auto for the whole document, the current paragraph(s) or a table. Exported as bidi paragraphs. Existing RTL documents are detected on open.
+- **Page setup**: 📄 dialog — A4/A5/Letter/Legal, portrait/landscape, margins (presets or custom, cm), header/footer distance.
+- **Header / footer**: typed directly at the top/bottom of the page (alignment, hide on first page). Read back from existing .docx files so they are no longer lost when editing.
+- **Page numbers**: header or footer, alignment, formats (1 / صفحة 1 / صفحة 1 من N / - 1 -), digits (1 2 3 / ١ ٢ ٣ / roman), start number, hide on first page.
+- **Page breaks**: ⎘ inserts a visible break; ↧ starts the current paragraph on a new page. Page guides in the editor are approximate.
+- Not covered: this source was only syntax-checked (no device or Word test).

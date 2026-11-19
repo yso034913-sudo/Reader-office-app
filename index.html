@@ -10,7 +10,7 @@
 <div id="hmore" hidden>
 <button class="btn" id="bkx">💾 نسخة احتياطية</button>
 
-<label class="btn">♻️ استرجاع نسخة<input id="bki" type="file" accept=".inkbak" hidden></label><label class="btn">🔐 فتح ملف مشفر<input id="encin" type="file" accept=".inkenc" hidden></label>
+<label class="btn">♻️ استرجاع نسخة<input id="bki" type="file" accept=".rabak,.inkbak" hidden></label><label class="btn">🔐 فتح ملف مشفر<input id="encin" type="file" accept=".raenc,.inkenc" hidden></label>
 </div>
 <div class="tp" data-tab="ppt">
 <label class="btn p big">📊 فتح PowerPoint<input id="fop" type="file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden></label>
@@ -94,14 +94,15 @@ const pump=()=>{if(cur||!Q.length)return;const q=cur=Q.shift(),o=q.o;
  document.addEventListener('keydown',kd,true);document.body.append(w);
  setTimeout(()=>{inp?(inp.focus(),inp.select()):w.querySelector(o.nf&&w.querySelector('.dc')?'.dc':'.do').focus()},60)};
 const dlg=(m,o={})=>new Promise(r=>{Q.push({m:String(m),o,r});pump()});
-window.inkAsk=(m,d)=>dlg(m,{input:1,def:d==null?'':d});
-window.inkConfirm=m=>dlg(m,{cancel:1,danger:/^حذف/.test(String(m))});
-window.inkYN=(m,y,n,nf)=>dlg(m,{cancel:1,yes:y||'نعم',no:n||'لا',nf:nf});
+window.raAsk=(m,d)=>dlg(m,{input:1,def:d==null?'':d});
+window.raConfirm=m=>dlg(m,{cancel:1,danger:/^حذف/.test(String(m))});
+window.raYN=(m,y,n,nf)=>dlg(m,{cancel:1,yes:y||'نعم',no:n||'لا',nf:nf});
 window.alert=m=>{dlg(m)};
 })();
 </script>
 <script src="app.js"></script>
 <script src="ui.js"></script>
-<script src="office.js"></script>
+<script src="wordtpl.js"></script>
+<script src="office.js"></script><script src="wordpro.js"></script>
 <script src="pptedit.js"></script><script src="scan.js"></script>
 </body></html>
