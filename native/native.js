@@ -29,7 +29,7 @@ window.addEventListener('readerall-file-received',ev=>{
    };
    const name=/\.(docx|xlsx|xls|csv|pptx)$/i.test(d.name)?d.name:d.name+(extByMime[mime]||'');
    const file=new File([bytes],name,{type:mime});
-   if(typeof window.inkImportOffice==='function')await window.inkImportOffice(file);
+   if(typeof window.raImportOffice==='function')await window.raImportOffice(file);
    else throw new Error('لم يتم تجهيز قارئ الملفات بعد');
   }catch(e){alert('تعذر فتح الملف المستلم: '+(e&&e.message||e))}
  });
@@ -68,10 +68,10 @@ HTMLAnchorElement.prototype.click=function(){
 // ---- Android back button ----
 if(AP&&AP.addListener)AP.addListener('backButton',()=>{
  const d=q('.dlg .dc')||q('.dlg .do');if(d){d.click();return}
- for(const s of['#mpl .mx','#trc .trx','#plc .no','#mgo .x']){const b=q(s);if(b){b.click();return}}
+ for(const s of['.dk-ov .dk-x','.pv-m .pv-x','#mpl .mx','#trc .trx','#plc .no','#mgo .x']){const b=q(s);if(b){b.click();return}}
  if(q('#pl')&&!q('#pl').hidden){q('#plx').click();return}
  if(!q('#mm').hidden||!q('#pc2').hidden){q('#mm').hidden=true;q('#pc2').hidden=true;return}
- if(window.inkBack&&window.inkBack())return;
+ if(window.raBack&&window.raBack())return;
  if(!q('#ed').hidden){q('#bk').click();return}
  AP.exitApp()});
 })();
