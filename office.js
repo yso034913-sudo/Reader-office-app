@@ -15,6 +15,7 @@ const LIB={
  fp:{f:'formula-parser.min.js',c:'https://cdn.jsdelivr.net/npm/hot-formula-parser@4.0.0/dist/formula-parser.min.js',g:'formulaParser'},
  pp:{f:'pptx-preview.umd.js',c:'https://cdn.jsdelivr.net/npm/pptx-preview@1.0.5/dist/pptx-preview.umd.js',g:'pptxPreview'},
  ff:{f:'ffmpeg/ffmpeg.js',c:'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js',g:'FFmpegWASM'},
+ pl:{f:'pdf-lib.min.js',c:'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',g:'PDFLib'},
  h2c:{f:'html2canvas.min.js',c:'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',g:'html2canvas'}
 };
 const G={};let LQ=Promise.resolve();
@@ -96,6 +97,7 @@ async function importFile(f){
   if(x==='csv')buf=await csvToXlsx(new TextDecoder('utf-8').decode(buf));
   const d=await createRec(k,baseName(f.name),buf);busy(false);openOffice(d)}catch(e){fail('تعذر استيراد الملف',e)}}
 window.raImportOffice=importFile;
+window.raNeed=need;
 function wire(id,fn){const b=document.getElementById(id);b&&(b.onclick=fn)}
 // blank .docx / .xlsx written by hand (no library download needed, instant)
 function zipStore(files){const te=new TextEncoder(),parts=[],cd=[];let off=0;
@@ -227,12 +229,12 @@ wire('nw-xls',newXls);wire('tpl-xls',newXls);
 
 // ---------- PDF export (raster pages) ----------
 const AR=/[\u0590-\u08FF\uFB1D-\uFEFF]/;
-async function elsToPdf(els){const h2c=await need('h2c'),L=window.PDFLib,pdf=await L.PDFDocument.create();
+async function elsToPdf(els){const h2c=await need('h2c'),L=await need('pl'),pdf=await L.PDFDocument.create();
  for(const el of els){const cv=await h2c(el,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});
   const jb=await new Promise(r=>cv.toBlob(r,'image/jpeg',.92)),im=await pdf.embedJpg(await jb.arrayBuffer());
   const w=el.offsetWidth*.75,h=el.offsetHeight*.75,pg=pdf.addPage([w,h]);pg.drawImage(im,{x:0,y:0,width:w,height:h});cv.width=cv.height=0}
  return new Blob([await pdf.save()],{type:'application/pdf'})}
-async function longToPdf(el,ratio){const h2c=await need('h2c'),L=window.PDFLib,pdf=await L.PDFDocument.create();
+async function longToPdf(el,ratio){const h2c=await need('h2c'),L=await need('pl'),pdf=await L.PDFDocument.create();
  const cv=await h2c(el,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});
  const W=cv.width,PH=Math.floor(W*ratio),pw=595*(ratio<1?1.414:1),ph=pw*ratio;
  for(let y=0;y<cv.height;y+=PH){const h=Math.min(PH,cv.height-y),s=E('canvas');s.width=W;s.height=PH;const c=s.getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,W,PH);c.drawImage(cv,0,y,W,h,0,0,W,h);

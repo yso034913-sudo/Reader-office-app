@@ -178,7 +178,7 @@ $('#ttl').onclick=()=>{raAsk('الاسم:',S.d.n).then(n=>{if(n){S.d.n=n;$('#ttl
 $('#ap').onclick=()=>{const i=S.pg.length;S.d.np++;addPg(i,[W,H]);rp(i);S.pg[i].scrollIntoView();save()};
 $('#bk').onclick=async()=>{S.ot=(S.ot||0)+1;$('#ed').classList.remove('fs');document.fullscreenElement&&document.exitFullscreen();clearHl();await flush();S.pdf=null;S.d=null;home()};
 // ---------- export ----------
-async function exImg(b){const D=await PDFLib.PDFDocument.create(),n=S.pg.length;
+async function exImg(b){if(!window.PDFLib&&window.raNeed)await window.raNeed('pl');const D=await PDFLib.PDFDocument.create(),n=S.pg.length;
  for(let i=0;i<n;i++){const el=S.pg[i];
   const k=2,c=E('canvas');c.width=el.dim[0]*k;c.height=el.dim[1]*k;const x=c.getContext('2d');await bgDraw(i,x,k);(S.d.s[i]||[]).forEach(o=>ds(x,o,k));
   const im=await D.embedJpg(await(await fetch(c.toDataURL('image/jpeg',.88))).arrayBuffer());
