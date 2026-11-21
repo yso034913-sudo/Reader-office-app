@@ -4,6 +4,15 @@ const C=window.Capacitor;if(!C||!C.isNativePlatform||!C.isNativePlatform())retur
 const P=C.Plugins||{},FS=P.Filesystem,SH=P.Share,AP=P.App,CAM=P.Camera;
 const q=s=>document.querySelector(s);
 
+// ---- microphone: ask for the Android permission, and native Arabic dictation (WebView has no SpeechRecognition) ----
+const SRP=P.SpeechRecognition;
+window.raEnsureMic=async()=>{if(SRP&&SRP.requestPermissions){try{await SRP.requestPermissions()}catch(e){}}};
+if(SRP)window.raNativeDictate=async lang=>{
+ const av=await SRP.available();if(!av||!av.available)throw new Error('خدمة التعرف على الصوت مش متاحة. ثبّت أو فعّل تطبيق Google.');
+ await window.raEnsureMic();
+ const r=await SRP.start({language:lang||'ar-EG',maxResults:1,prompt:'اتكلم الآن',partialResults:false,popup:true});
+ return r&&r.matches&&r.matches[0]||''};
+
 // ---- receive Office files from Android Open with / Share intents ----
 // Java sends large files in base64 chunks; reassemble them, then dispatch the same event as before.
 const chunks={};
