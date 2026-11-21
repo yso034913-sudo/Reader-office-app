@@ -22,7 +22,7 @@ const scr=src=>new Promise((ok,no)=>{const s=document.createElement('script');s.
 function need(k){const p=LQ.then(async()=>{if(G[k])return G[k];const L=LIB[k];try{window[L.g]=undefined}catch(e){}
  try{await scr('lib/'+L.f)}catch(e){await scr(L.c)}
  if(!window[L.g]){try{await scr(L.c)}catch(e){}}
- G[k]=window[L.g];if(!G[k])throw new Error('المكتبة '+k+' ما اتحمّلتش');return G[k]});
+ G[k]=window[L.g];if(!G[k])throw new Error('المكتبة '+k+' ما اتحمّلتش — اتأكد من الإنترنت أو إن مجلد lib موجود جنب التطبيق');return G[k]});
  LQ=p.catch(()=>{});return p}
 
 // ---------- helpers ----------
@@ -108,14 +108,17 @@ function zipStore(files){const te=new TextEncoder(),parts=[],cd=[];let off=0;
  return new Blob([...parts,...cd,new Uint8Array(e.buffer)]).arrayBuffer()}
 const XH='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n',RELNS='http://schemas.openxmlformats.org/package/2006/relationships',ODR='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 const blankDocx=()=>zipStore([
- ['[Content_Types].xml',XH+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'],
+ ['[Content_Types].xml',XH+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>'],
  ['_rels/.rels',XH+'<Relationships xmlns="'+RELNS+'"><Relationship Id="rId1" Type="'+ODR+'/officeDocument" Target="word/document.xml"/></Relationships>'],
+ ['word/_rels/document.xml.rels',XH+'<Relationships xmlns="'+RELNS+'"><Relationship Id="rId1" Type="'+ODR+'/styles" Target="styles.xml"/></Relationships>'],
+ ['word/styles.xml',XH+'<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Arial"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="en-US" w:bidi="ar-SA"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="259" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style></w:styles>'],
  ['word/document.xml',XH+'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p/><w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>']]);
 const blankXlsx=()=>zipStore([
- ['[Content_Types].xml',XH+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>'],
+ ['[Content_Types].xml',XH+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
  ['_rels/.rels',XH+'<Relationships xmlns="'+RELNS+'"><Relationship Id="rId1" Type="'+ODR+'/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
  ['xl/workbook.xml',XH+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="'+ODR+'"><sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>'],
- ['xl/_rels/workbook.xml.rels',XH+'<Relationships xmlns="'+RELNS+'"><Relationship Id="rId1" Type="'+ODR+'/worksheet" Target="worksheets/sheet1.xml"/></Relationships>'],
+ ['xl/_rels/workbook.xml.rels',XH+'<Relationships xmlns="'+RELNS+'"><Relationship Id="rId1" Type="'+ODR+'/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="'+ODR+'/styles" Target="styles.xml"/></Relationships>'],
+ ['xl/styles.xml',XH+'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'],
  ['xl/worksheets/sheet1.xml',XH+'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData/></worksheet>']]);
 const WORD_TPL={
  cv:'<h1>السيرة الذاتية</h1><h2>البيانات الشخصية</h2><p>الاسم: ....................</p><p>الهاتف: ....................</p><p>البريد الإلكتروني: ....................</p><h2>الملخص المهني</h2><p>اكتب نبذة مختصرة عن خبراتك ومهاراتك.</p><h2>الخبرات العملية</h2><p><b>المسمى الوظيفي — جهة العمل</b></p><ul><li>المسؤولية أو الإنجاز الأول</li><li>المسؤولية أو الإنجاز الثاني</li></ul><h2>التعليم</h2><p>المؤهل — المؤسسة التعليمية — السنة</p><h2>المهارات</h2><ul><li>مهارة أولى</li><li>مهارة ثانية</li></ul>',
@@ -123,16 +126,37 @@ const WORD_TPL={
  letter:'<h1>عنوان الخطاب</h1><p>التاريخ: ....................</p><p>السيد/السيدة: ....................</p><p>تحية طيبة وبعد،</p><p>اكتب نص الخطاب هنا...</p><p>وتفضلوا بقبول فائق الاحترام،</p><p>الاسم: ....................</p><p>التوقيع: ....................</p>'
 };
 const WORD_BASE=[{id:'cv',ic:'👤',nm:'سيرة ذاتية'},{id:'report',ic:'📄',nm:'تقرير'},{id:'letter',ic:'✉️',nm:'خطاب'}];
-async function makeWordTpl(t){try{busy(true,'جاري تجهيز القالب…');const dx=await need('dx'),tmp=E('div');tmp.innerHTML=t.html;const blob=await htmlToDocx(dx,tmp),buf=await blob.arrayBuffer(),d=await createRec('doc',t.nm,buf,1);busy(false);openOffice(d,{edit:1,newDoc:1})}catch(e){fail('تعذر إنشاء القالب',e)}}
-wire('tpl-doc',()=>{const o=document.querySelector('.twg');if(o){o.remove();return}
- const all=[...WORD_BASE.map(b=>({...b,html:WORD_TPL[b.id]})),...(window.WORD_TPLS||[])];
- const w=E('div','shg twg'),box=E('div','shb','<div class="shh"><b>📚 قوالب Word ('+all.length+')</b><button type="button" aria-label="إغلاق">✕</button></div>'),close=()=>w.remove();
- box.querySelector('button').onclick=close;w.onpointerdown=e=>{if(e.target===w)close()};
- const h=E('h5');h.textContent='اختار قالب وهيتفتح جاهز للتعديل';const g=E('div','tpg');
- for(const t of all){const b=E('button','tpt','<i>'+t.ic+'</i><span></span>');b.querySelector('span').textContent=t.nm;b.onclick=()=>{close();makeWordTpl(t)};g.append(b)}
- box.append(h,g);w.append(box);document.body.append(w)});
-wire('nw-doc',async()=>{try{busy(true,'جاري إنشاء المستند…');const buf=await blankDocx();
- const d=await createRec('doc','مستند '+new Date().toLocaleDateString('ar-EG'),buf,1);busy(false);openOffice(d,{edit:1,newDoc:1})}catch(e){fail('تعذر إنشاء المستند',e)}});
+async function makeWordTpl(t){try{busy(true,'جاري تجهيز القالب…');const dx=await need('dx'),tmp=E('div');tmp.innerHTML=t.html;const blob=await htmlToDocx(dx,tmp),buf=await blob.arrayBuffer(),d=await createRec('doc',t.nm,buf,1);busy(false);openOffice(d,{edit:1,newDoc:1,html:t.html})}catch(e){fail('تعذر إنشاء القالب',e)}}
+// ---------- template picker (same look as the PowerPoint deck picker) ----------
+function tplPicker(o){return new Promise(res=>{
+ const ov=E('div','dk-ov');ov.setAttribute('role','dialog');ov.setAttribute('aria-label',o.title);
+ ov.innerHTML='<div class="dk-box"><div class="dk-h"><b></b><button type="button" class="dk-x" aria-label="إلغاء">✕</button></div><p class="dk-n"></p><div class="dk-g"></div></div>';
+ ov.querySelector('.dk-h b').textContent=o.title;ov.querySelector('.dk-n').textContent=o.note;
+ const g=ov.querySelector('.dk-g'),done=v=>{ov.remove();res(v)};
+ for(const [gt,items] of o.groups){if(!items.length)continue;const h=E('h6','dk-t');h.textContent=gt;g.append(h);
+  for(const it of items){const b=E('button','dk-c'+(it.id==='blank'?' dk-b':''));b.type='button';
+   const p=E('span','tp-p','<u></u><u></u><u></u>');p.style.setProperty('--c',it.c||'#1e40af');
+   const t=E('b');t.textContent=it.ic+' '+it.n;const sm=E('small');sm.textContent=it.d||'';const em=E('em');em.textContent=it.e||'';
+   b.append(p,t);if(it.d)b.append(sm);if(it.e)b.append(em);b.onclick=()=>done(it.id);g.append(b)}}
+ ov.querySelector('.dk-x').onclick=()=>done(null);ov.addEventListener('click',e=>{if(e.target===ov)done(null)});
+ document.body.append(ov)})}
+
+// ---------- Word: new document / templates ----------
+const WORD_GROUPS=[['أعمال ومشاريع',['cv','report','invoice','quote','contract','offer','proposal','bizplan','receipt','memo','minutes'],'#1e40af'],['تعليم ودراسة',['studyplan','research','lesson','lecture'],'#0f766e'],['خطابات وشهادات',['letter','coverl','recommend','cert','resign','leave'],'#9333ea'],['فعاليات ومتابعة',['event','tasks'],'#c2410c']];
+async function wordPicker(){
+ const all=[...WORD_BASE.map(b=>({...b,html:WORD_TPL[b.id]})),...(window.WORD_TPLS||[])],byId={};all.forEach(t=>byId[t.id]=t);
+ const used=new Set(['blank']),groups=[['الأساسية',[{id:'blank',ic:'📄',n:'مستند فارغ',d:'ابدأ من صفحة بيضاء',e:'صفحة واحدة',c:'#ffffff'}]]];
+ for(const [gt,ids,c] of WORD_GROUPS){const items=ids.filter(i=>byId[i]).map(i=>{used.add(i);return {id:i,ic:byId[i].ic,n:byId[i].nm,e:'قالب جاهز للتعديل',c}});groups.push([gt,items])}
+ const rest=all.filter(t=>!used.has(t.id)).map(t=>({id:t.id,ic:t.ic,n:t.nm,e:'قالب جاهز للتعديل',c:'#475569'}));groups.push(['قوالب أخرى',rest]);
+ const k=await tplPicker({title:'📝 اختر قالب المستند',note:all.length+' قالب جاهز للتعديل — أو ابدأ بمستند فارغ.',groups});
+ return k?(k==='blank'?'blank':byId[k]):null}
+async function newWord(){
+ try{const t=await wordPicker();if(!t)return;
+  if(t==='blank'){busy(true,'جاري إنشاء المستند…');const buf=await blankDocx();
+   const d=await createRec('doc','مستند '+new Date().toLocaleDateString('ar-EG'),buf,1);busy(false);openOffice(d,{edit:1,newDoc:1})}
+  else await makeWordTpl(t)}
+ catch(e){fail('تعذر إنشاء المستند',e)}}
+wire('nw-doc',newWord);wire('tpl-doc',newWord);
 // ---------- new blank PowerPoint (built from scratch: 16:9, one title slide) ----------
 function pptNew(){
  const H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n',te=new TextEncoder(),
@@ -164,8 +188,42 @@ function pptNew(){
   ['ppt/slides/slide1.xml',slide],['ppt/slides/_rels/slide1.xml.rels',rels([['slideLayout','../slideLayouts/slideLayout1.xml']])],['ppt/theme/theme1.xml',theme]].map(([k,v])=>[k,te.encode(v)]));
  return zipBuild({m:{}},new Set(),put).arrayBuffer()}
 wire('nw-ppt',async()=>{try{const deck=window.pptDeckPicker?await window.pptDeckPicker():'biz';if(!deck)return;const buf=await pptNew(),d=await createRec('ppt','عرض '+new Date().toLocaleDateString('ar-EG'),buf,1);openOffice(d,{edit:1,deck})}catch(e){fail('تعذر إنشاء العرض',e)}});
-wire('tpl-xls',async()=>{const c=await raAsk('اختر قالب Excel: budget للميزانية أو attendance للحضور أو inventory للمخزون','budget');if(!c)return;const k=c.trim().toLowerCase();if(!['budget','attendance','inventory'].includes(k))return toast('استخدم budget أو attendance أو inventory');try{busy(true,'جاري إنشاء القالب…');const ex=await need('xl'),wb=new ex.Workbook(),ws=wb.addWorksheet(({budget:'الميزانية',attendance:'الحضور',inventory:'المخزون'}[k]));const rows={budget:[['البند','المبلغ المخطط','المبلغ الفعلي','الفرق'],['إيجار',0,0,{formula:'B2-C2'}],['طعام',0,0,{formula:'B3-C3'}],['مواصلات',0,0,{formula:'B4-C4'}],['الإجمالي',{formula:'SUM(B2:B4)'},{formula:'SUM(C2:C4)'},{formula:'B5-C5'}]],attendance:[['الاسم','التاريخ','الحالة','ملاحظات'],['','','حاضر',''],['','','غائب','']],inventory:[['الصنف','الكمية','سعر الوحدة','الإجمالي'],['',0,0,{formula:'B2*C2'}],['',0,0,{formula:'B3*C3'}],['الإجمالي','','',{formula:'SUM(D2:D3)'}]]};ws.addRows(rows[k]);ws.getRow(1).font={bold:true,color:{argb:'FFFFFFFF'}};ws.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1E40AF'}};ws.columns.forEach(col=>col.width=20);ws.views=[{state:'frozen',ySplit:1}];const b=await wb.xlsx.writeBuffer(),d=await createRec('xls',({budget:'ميزانية',attendance:'سجل حضور',inventory:'مخزون'}[k]),b,1);busy(false);openOffice(d)}catch(e){fail('تعذر إنشاء قالب Excel',e)}});
-wire('nw-xls',async()=>{try{busy(true,'جاري إنشاء الجدول…');const buf=await blankXlsx();const d=await createRec('xls','جدول '+new Date().toLocaleDateString('ar-EG'),buf,1);busy(false);openOffice(d)}catch(e){fail('تعذر إنشاء الجدول',e)}});
+// ---------- Excel: new sheet / templates ----------
+const XF=f=>({formula:f}),XN=(n,f)=>Array.from({length:n},(_,i)=>f(i+2));
+const XLS_TPLS=[
+ {id:'budget',ic:'💰',n:'ميزانية شهرية',d:'المخطط والفعلي والفرق',g:'مالية',c:'#15803d',sh:'الميزانية',w:[22,16,16,16],
+  rows:[['البند','المبلغ المخطط','المبلغ الفعلي','الفرق'],...['إيجار','طعام','مواصلات','فواتير','ترفيه','أخرى'].map((x,i)=>[x,0,0,XF('B'+(i+2)+'-C'+(i+2))]),['الإجمالي',XF('SUM(B2:B7)'),XF('SUM(C2:C7)'),XF('B8-C8')]]},
+ {id:'expenses',ic:'🧾',n:'مصروفات يومية',d:'سجل المصروفات مع الإجمالي',g:'مالية',c:'#0e7490',sh:'المصروفات',w:[14,18,28,14],
+  rows:[['التاريخ','التصنيف','البيان','المبلغ'],...XN(12,()=>['','','','']),['','','الإجمالي',XF('SUM(D2:D13)')]]},
+ {id:'invoice',ic:'📑',n:'فاتورة',d:'أصناف وكميات وأسعار',g:'مالية',c:'#7c3aed',sh:'فاتورة',w:[28,12,14,16],
+  rows:[['الصنف','الكمية','سعر الوحدة','الإجمالي'],...XN(8,r=>['',0,0,XF('B'+r+'*C'+r)]),['إجمالي الفاتورة','','',XF('SUM(D2:D9)')]]},
+ {id:'sales',ic:'📈',n:'مبيعات شهرية',d:'مبيعات 12 شهر مع المجموع والمتوسط',g:'مالية',c:'#be123c',sh:'المبيعات',w:[16,16,16,16],
+  rows:[['الشهر','المبيعات','التكلفة','الربح'],...['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'].map((m,i)=>[m,0,0,XF('B'+(i+2)+'-C'+(i+2))]),['الإجمالي',XF('SUM(B2:B13)'),XF('SUM(C2:C13)'),XF('SUM(D2:D13)')],['المتوسط',XF('AVERAGE(B2:B13)'),XF('AVERAGE(C2:C13)'),XF('AVERAGE(D2:D13)')]]},
+ {id:'attendance',ic:'🗓️',n:'سجل حضور',d:'الاسم والتاريخ والحالة',g:'تعليم ومتابعة',c:'#0f766e',sh:'الحضور',w:[24,14,14,26],
+  rows:[['الاسم','التاريخ','الحالة','ملاحظات'],...XN(15,()=>['','','','']),['عدد الحاضرين','',XF('COUNTIF(C2:C16,"حاضر")'),''],['عدد الغائبين','',XF('COUNTIF(C2:C16,"غائب")'),'']]},
+ {id:'grades',ic:'🎓',n:'درجات الطلاب',d:'ثلاث درجات والمجموع والمتوسط',g:'تعليم ومتابعة',c:'#1d4ed8',sh:'الدرجات',w:[6,24,12,12,12,12,12],
+  rows:[['م','الاسم','الاختبار الأول','الاختبار الثاني','النهائي','المجموع','المتوسط'],...XN(12,r=>[r-1,'',0,0,0,XF('SUM(C'+r+':E'+r+')'),XF('AVERAGE(C'+r+':E'+r+')')])]},
+ {id:'timetable',ic:'🕒',n:'جدول المحاضرات',d:'أيام الأسبوع في مواعيد اليوم',g:'تعليم ومتابعة',c:'#9333ea',sh:'الجدول',w:[14,16,16,16,16,16,16],
+  rows:[['الوقت','السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'],...['8:00','9:00','10:00','11:00','12:00','1:00','2:00','3:00'].map(t=>[t,'','','','','',''])]},
+ {id:'tasks',ic:'✅',n:'متابعة مهام',d:'مهام وأولويات وحالة التنفيذ',g:'تعليم ومتابعة',c:'#c2410c',sh:'المهام',w:[6,30,16,14,14],
+  rows:[['م','المهمة','المسؤول','الموعد','الحالة'],...XN(12,r=>[r-1,'','','','لم تبدأ']),['','عدد المهام المنجزة','','',XF('COUNTIF(E2:E13,"تمت")')]]},
+ {id:'inventory',ic:'📦',n:'جرد مخزون',d:'أصناف وكميات وقيمة المخزون',g:'أعمال',c:'#a16207',sh:'المخزون',w:[26,12,14,16],
+  rows:[['الصنف','الكمية','سعر الوحدة','الإجمالي'],...XN(10,r=>['',0,0,XF('B'+r+'*C'+r)]),['الإجمالي','','',XF('SUM(D2:D11)')]]}
+];
+async function makeXlsTpl(t){try{busy(true,'جاري إنشاء القالب…');const ex=await need('xl'),wb=new ex.Workbook(),ws=wb.addWorksheet(t.sh);
+ ws.addRows(t.rows);ws.getRow(1).font={bold:true,color:{argb:'FFFFFFFF'}};ws.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+t.c.slice(1).toUpperCase()}};
+ t.w.forEach((w,i)=>ws.getColumn(i+1).width=w);ws.views=[{state:'frozen',ySplit:1,rightToLeft:true}];
+ const b=await wb.xlsx.writeBuffer(),d=await createRec('xls',t.n,b,1);busy(false);openOffice(d)}catch(e){fail('تعذر إنشاء قالب Excel',e)}}
+async function newXls(){
+ try{const byId={};XLS_TPLS.forEach(t=>byId[t.id]=t);
+  const groups=[['الأساسية',[{id:'blank',ic:'📊',n:'جدول فارغ',d:'ابدأ من ورقة بيضاء',e:'ورقة واحدة',c:'#ffffff'}]]];
+  for(const gt of ['مالية','تعليم ومتابعة','أعمال'])groups.push([gt,XLS_TPLS.filter(t=>t.g===gt).map(t=>({id:t.id,ic:t.ic,n:t.n,d:t.d,e:'قالب جاهز للتعديل',c:t.c}))]);
+  const k=await tplPicker({title:'📈 اختر قالب الجدول',note:XLS_TPLS.length+' قالب جاهز للتعديل — أو ابدأ بجدول فارغ.',groups});
+  if(!k)return;
+  if(k==='blank'){busy(true,'جاري إنشاء الجدول…');const buf=await blankXlsx();const d=await createRec('xls','جدول '+new Date().toLocaleDateString('ar-EG'),buf,1);busy(false);openOffice(d)}
+  else await makeXlsTpl(byId[k])}
+ catch(e){fail('تعذر إنشاء الجدول',e)}}
+wire('nw-xls',newXls);wire('tpl-xls',newXls);
 
 // ---------- PDF export (raster pages) ----------
 const AR=/[\u0590-\u08FF\uFB1D-\uFEFF]/;
@@ -191,7 +249,7 @@ async function wordView(){
  setBar([{t:'✏️ تعديل',f:()=>openOffice(O.d,{edit:1})},{t:'⬇ DOCX',f:()=>dl(new Blob([O.buf],{type:MIME.doc}),O.d.n+'.docx')},'|',...zoomBtns(()=>w)])}
 
 async function wordEdit(){
- let html='<p><br></p>';
+ let html=O.opt.html||'<p><br></p>';
  if(!O.opt.newDoc){let hi=null;
    try{if(window.WordPro&&window.WordPro.importDocx)hi=await window.WordPro.importDocx(O.buf.slice(0))}catch(e){console.warn('importDocx failed, falling back',e)}
    if(hi){html=hi;toast('اتحافظ على تنسيق المستند الأصلي (خطوط، ألوان، مسافات، جداول، صور). حفظك هيتعمل كنسخة جديدة.')}
