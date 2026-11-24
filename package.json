@@ -28,5 +28,15 @@
     "@fontsource/almarai": "^5.0.0",
     "@fontsource/noto-naskh-arabic": "^5.0.0",
     "@fontsource/noto-kufi-arabic": "^5.0.0"
+  },
+  "optionalDependencies": {
+    "@fontsource/noto-sans-arabic": "^5.0.0",
+    "@fontsource/ibm-plex-sans-arabic": "^5.0.0",
+    "@fontsource/mada": "^5.0.0",
+    "@fontsource/reem-kufi": "^5.0.0",
+    "@fontsource/el-messiri": "^5.0.0",
+    "@fontsource/lateef": "^5.0.0",
+    "@fontsource/scheherazade-new": "^5.0.0",
+    "@fontsource/markazi-text": "^5.0.0"
   }
 }

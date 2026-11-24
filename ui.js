@@ -171,3 +171,80 @@ window.raLockToggle=async d=>{
   d.lk=1}
  await dbPut(d);home()};
 })();
+
+// ---------- Font picker (Arabic / English) — shared by the Word and PowerPoint editors ----------
+// window.raFontPicker(onPick): step 1 asks "عربي or English", step 2 lists that language's fonts, each drawn in its own face.
+(()=>{
+ 'use strict';
+ const E=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
+ const FONTS={
+  ar:['Traditional Arabic','Simplified Arabic','Sakkal Majalla','Arabic Typesetting','Cairo','Tajawal','Almarai','Amiri','Noto Naskh Arabic','Noto Kufi Arabic','Noto Sans Arabic','IBM Plex Sans Arabic','Mada','Reem Kufi','El Messiri','Lateef','Scheherazade New','Markazi Text'],
+  en:['Calibri','Arial','Times New Roman','Cambria','Georgia','Verdana','Tahoma','Segoe UI','Trebuchet MS','Courier New']
+ };
+ const SAMPLE={ar:'أبجد هوز حطي كلمن 123',en:'The quick brown fox 123'};
+ const cv=document.createElement('canvas').getContext('2d');
+ const wd=(f,t)=>{cv.font='32px '+f;return cv.measureText(t).width};
+ // a font counts as available when drawing with it differs from every generic fallback
+ const has=async(n,smp)=>{try{await document.fonts.load('32px "'+n+'"',smp)}catch(e){}
+  return ['monospace','serif','sans-serif'].some(b=>wd('"'+n+'",'+b,smp)!==wd(b,smp))};
+ if(!document.getElementById('rafp-css')){const c=E('style');c.id='rafp-css';c.textContent=`
+.rafp-ov{position:fixed;inset:0;z-index:2147483000;background:#0008;display:flex;align-items:flex-end;justify-content:center}
+.rafp-sh{width:100%;max-width:560px;max-height:82vh;display:flex;flex-direction:column;background:var(--card,#fff);color:var(--fg,#111);border-radius:18px 18px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom));box-sizing:border-box;direction:rtl;font-family:inherit}
+.rafp-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.rafp-hd b{flex:1;font-size:17px}
+.rafp-hd button{flex:none;min-width:40px;height:40px;border-radius:12px;border:1px solid var(--line,#ccd);background:var(--bg,#f4f6fb);color:inherit;font-size:18px;font-family:inherit}
+.rafp-ch{display:flex;gap:10px}
+.rafp-ch button{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:18px 8px;border-radius:16px;border:2px solid var(--line,#ccd);background:var(--bg,#f4f6fb);color:inherit;font-family:inherit}
+.rafp-ch button i{font-style:normal;font-size:34px;line-height:1.2}
+.rafp-ch button span{font-size:15px;font-weight:700}
+.rafp-ls{overflow-y:auto;display:flex;flex-direction:column;gap:6px;-webkit-overflow-scrolling:touch}
+.rafp-row{flex:none;display:block;width:100%;text-align:start;padding:10px 12px;border-radius:12px;border:1px solid var(--line,#ccd);background:var(--bg,#f4f6fb);color:inherit;font-family:inherit}
+.rafp-row small{display:block;font-size:12px;opacity:.65;direction:ltr;text-align:start}
+.rafp-row .s{display:block;font-size:22px;line-height:1.5;margin-top:2px}
+.rafp-row .s.en{direction:ltr;text-align:left}
+.rafp-row.cur{border-color:var(--acc,#2f5fe0);border-width:2px}
+.rafp-row.cur small::before{content:'✓ ';font-weight:700}
+.rafp-row.off{opacity:.5}
+.rafp-row.off small::after{content:'  ⚠ مش متاح على الجهاز ده'}
+`;document.head.append(c)}
+ let cur=null;
+ const close=()=>{if(cur){cur.remove();cur=null}};
+ window.raFontPicker=(onPick,current)=>{
+  close();
+  const ov=E('div','rafp-ov'),sh=E('div','rafp-sh');ov.append(sh);cur=ov;
+  ov.addEventListener('mousedown',e=>e.preventDefault()); // keep the editor's text selection
+  ov.addEventListener('click',e=>{if(e.target===ov)close()});
+  const head=(title,back)=>{const h=E('div','rafp-hd');if(back){const b=E('button','', '→');b.setAttribute('aria-label','رجوع');b.onclick=step1;h.append(b)}
+   h.append(E('b','',title));const x=E('button','','✕');x.setAttribute('aria-label','إغلاق');x.onclick=close;h.append(x);return h};
+  const step1=()=>{sh.innerHTML='';sh.append(head('اختار نوع الخط'));
+   const ch=E('div','rafp-ch');
+   for(const [k,ic,lb] of [['ar','ع','خطوط عربي'],['en','Aa','English fonts']]){
+    const b=E('button','','<i></i><span></span>');b.querySelector('i').textContent=ic;b.querySelector('span').textContent=lb;b.onclick=()=>step2(k);ch.append(b)}
+   sh.append(ch)};
+  const step2=k=>{sh.innerHTML='';sh.append(head(k==='ar'?'الخطوط العربي':'English fonts',1));
+   const ls=E('div','rafp-ls');sh.append(ls);
+   for(const n of FONTS[k]){
+    const r=E('button','rafp-row','<small></small><span class="s"></span>');r.querySelector('small').textContent=n;
+    const s=r.querySelector('.s');s.textContent=SAMPLE[k];s.style.fontFamily='"'+n+'",'+(k==='ar'?'"Noto Naskh Arabic",':'')+'sans-serif';if(k==='en')s.classList.add('en');
+    if(current&&String(current).toLowerCase()===n.toLowerCase())r.classList.add('cur');
+    r.onclick=()=>{close();try{onPick(n)}catch(e){console.warn('font',e)}};ls.append(r);
+    has(n,SAMPLE[k]).then(ok=>{if(!ok)r.classList.add('off')})}};
+  document.body.append(ov);
+  const inK=current&&['ar','en'].find(k=>FONTS[k].some(n=>n.toLowerCase()===String(current).toLowerCase()));
+  inK?step2(inK):step1();
+ };
+})();
+
+// Applies a font to the current selection of `root` and removes inline fonts inside it that would override the choice.
+// Also returns the font name at the caret/selection via window.raFontAt.
+window.raFontAt=()=>{const g=getSelection();if(!g.rangeCount)return '';let n=g.anchorNode;if(n&&n.nodeType===3)n=n.parentElement;if(!n)return '';
+ return (getComputedStyle(n).fontFamily||'').split(',')[0].replace(/["']/g,'').trim()};
+window.raApplyFont=(root,name)=>{
+ const q='"'+name+'"';
+ document.execCommand('styleWithCSS',false,true);document.execCommand('fontName',false,name);
+ const g=getSelection();if(!g.rangeCount||g.isCollapsed||!root)return;
+ const r=g.getRangeAt(0),nr=document.createRange();
+ root.querySelectorAll('*').forEach(n=>{if(!r.intersectsNode(n))return;nr.selectNodeContents(n);
+  if(r.compareBoundaryPoints(Range.START_TO_START,nr)>0||r.compareBoundaryPoints(Range.END_TO_END,nr)<0)return; // only elements fully inside the selection
+  if(n.tagName==='FONT'&&n.hasAttribute('face'))n.setAttribute('face',name);
+  if(n.style&&n.style.fontFamily)n.style.fontFamily=q})};

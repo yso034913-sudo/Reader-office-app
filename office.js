@@ -270,11 +270,14 @@ async function wordEdit(){
  const ed=$('#oed');ed.innerHTML=html;ed.addEventListener('input',()=>O.dirty=1);
  let rg=null;document.addEventListener('selectionchange',O.sc=()=>{const s=getSelection();if(s.rangeCount&&ed.contains(s.anchorNode))rg=s.getRangeAt(0).cloneRange()});
  const restore=()=>{ed.focus();if(rg){const s=getSelection();s.removeAllRanges();s.addRange(rg)}};
+ const fontBtn=E('button');fontBtn.type='button';fontBtn.setAttribute('aria-label','الخط');fontBtn.addEventListener('mousedown',e=>e.preventDefault());
+ const showFont=()=>{const f=ed.contains(getSelection().anchorNode)?window.raFontAt():'';fontBtn.textContent='🔤 '+(f||'الخط');fontBtn.dataset.f=f};
+ showFont();document.addEventListener('selectionchange',showFont);
+ fontBtn.onclick=()=>window.raFontPicker(v=>{restore();window.raApplyFont(ed,v);O.dirty=1;showFont()},fontBtn.dataset.f);
  const wp=window.WordPro?window.WordPro.mount({ed,O,restore,range:()=>rg,buf:O.buf,newDoc:O.newDoc}):{items:{dir:[],table:[],image:[],page:[]}};
  const ex=(c,v)=>()=>{restore();document.execCommand(c,false,v);O.dirty=1};
  const sel=(opts,ph,f)=>{const s=E('select');s.innerHTML='<option value="">'+ph+'</option>'+opts.map(o=>'<option>'+o+'</option>').join('');s.onchange=()=>{if(s.value){f(s.value);s.value=''}};return {el:s}};
  const col=(ph,cmd)=>colorBtn({label:ph,title:cmd==='hiliteColor'||cmd==='backColor'?'لون التظليل':'لون النص',init:cmd==='hiliteColor'||cmd==='backColor'?'#FFFF00':'#FF0000',onPick:c=>{restore();document.execCommand(cmd,false,c);O.dirty=1}});
- const FONTS=['Calibri','Arial','Times New Roman','Tahoma','Verdana','Georgia','Courier New','Segoe UI','Cambria','Trebuchet MS','Traditional Arabic','Simplified Arabic','Sakkal Majalla','Arabic Typesetting','Cairo','Amiri','Tajawal','Almarai','Noto Naskh Arabic','Noto Kufi Arabic'];
  const SIZES=[8,9,10,11,12,14,16,18,20,24,28,32,36,48,72];
  const blockOf=()=>{let n=getSelection().anchorNode;while(n&&n!==ed&&!(n.nodeType===1&&/^(P|DIV|LI|H[1-6]|TD|TH|BLOCKQUOTE)$/.test(n.tagName)))n=n.parentNode;return n&&n!==ed?n:null};
  const replaceText=async()=>{const a=await raAsk('ابحث عن النص');if(!a)return;const b=await raAsk('استبدال بـ');if(b===null)return;let count=0;const w=document.createTreeWalker(ed,NodeFilter.SHOW_TEXT);const ns=[];while(w.nextNode())ns.push(w.currentNode);ns.forEach(n=>{if(n.nodeValue.includes(a)){const parts=n.nodeValue.split(a);count+=parts.length-1;n.nodeValue=parts.join(b)}});if(count)O.dirty=1;toast(count?'تم استبدال '+count+' موضع':'ملقتش النص')};
@@ -285,7 +288,7 @@ async function wordEdit(){
   {t:'💾',title:'حفظ',f:save},{t:'⬇ DOCX',f:async()=>{await save(1)}},'|',
   {t:'↶',f:ex('undo'),title:'تراجع'},{t:'↷',f:ex('redo'),title:'إعادة'},'|',
   {t:'<b>B</b>',f:ex('bold')},{t:'<i>I</i>',f:ex('italic')},{t:'<u>U</u>',f:ex('underline')},{t:'<s>S</s>',f:ex('strikeThrough')},'|',
-  sel(FONTS,'الخط',v=>{restore();document.execCommand('fontName',false,v);O.dirty=1}),
+  {el:fontBtn},
   sel(SIZES,'الحجم',v=>{restore();document.execCommand('fontSize',false,'7');ed.querySelectorAll('font[size="7"]').forEach(f=>{f.removeAttribute('size');f.style.fontSize=v+'pt'});O.dirty=1}),
   (()=>{const n=E('input');n.type='number';n.min=1;n.max=999;n.step=1;n.inputMode='numeric';n.placeholder='حجم';n.title='حجم الخط بالرقم (pt)';n.style.cssText='flex:none;width:64px;padding:6px 6px;font-size:14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);text-align:center';const ap=()=>{const v=+n.value;if(!(v>0))return;restore();document.execCommand('fontSize',false,'7');ed.querySelectorAll('font[size="7"]').forEach(f=>{f.removeAttribute('size');f.style.fontSize=Math.min(999,v)+'pt'});O.dirty=1};n.onchange=ap;n.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();ap()}};return {el:n}})(),
   col('A لون','foreColor'),col('🖍 تظليل','hiliteColor'),colorBtn({label:'▦ لون الخلية',title:'لون الخلية الحالية',init:'#FFF2CC',onPick:c=>{restore();const n=getSelection().anchorNode,el=n&&(n.nodeType===1?n:n.parentElement),td=el&&el.closest&&el.closest('td,th');if(!td||!ed.contains(td)){alert('اضغط جوه خلية في الجدول الأول.');return}td.style.background=c;O.dirty=1}}),'|',
@@ -305,7 +308,7 @@ async function wordEdit(){
   ...wp.items.page,{t:'📑 فهرس تلقائي',f:insertTOC},{t:'📅 تاريخ',f:insertDate},{t:'بحث/استبدال',f:replaceText},{t:'🔢 إحصاء',f:stats},{t:'⬇ PDF',f:pdf},{t:'🖨 طباعة',f:printOffice},{t:'🔐 نسخة مشفرة',f:encryptedExport}]);
  async function save(dlOnly){try{busy(true,'جاري الحفظ…');const dx=await need('dx');const blob=await htmlToDocx(dx,ed,{live:1}),buf=await blob.arrayBuffer();await saveBuf(buf);busy(false);if(dlOnly===1)dl(new Blob([buf],{type:MIME.doc}),O.d.n+'.docx');else toast('اتحفظ ✅')}catch(e){fail('فشل الحفظ',e)}}
  async function pdf(){let box;try{busy(true,'جاري تحويل PDF…');box=E('div','ofprint');box.innerHTML=ed.innerHTML;const ratio=window.WordPro?window.WordPro.printBox(box):1.4142;document.body.append(box);const b=await longToPdf(box,ratio);box.remove();busy(false);dl(b,O.d.n+'.pdf')}catch(e){box&&box.remove();fail('فشل التصدير',e)}}
- O.cleanup=()=>{document.removeEventListener('selectionchange',O.sc);wp.cleanup&&wp.cleanup()}}
+ O.cleanup=()=>{document.removeEventListener('selectionchange',O.sc);document.removeEventListener('selectionchange',showFont);wp.cleanup&&wp.cleanup()}}
 
 // ---- HTML -> DOCX ----
 const hex=c=>{const m=/rgba?\((\d+)[, ]+(\d+)[, ]+(\d+)(?:[, /]+([\d.]+))?/.exec(c||'');if(!m)return null;if(m[4]!==undefined&&+m[4]===0)return null;return [m[1],m[2],m[3]].map(x=>(+x).toString(16).padStart(2,'0')).join('').toUpperCase()};
