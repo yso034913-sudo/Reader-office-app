@@ -48,6 +48,14 @@
 .xt td.xs{background:#dbe7ff!important}
 .xt td.xa{outline:2px solid #2f6bff;outline-offset:-2px;background:#fff!important}
 .xt td.xe{color:#c0262d}
+.xt.xfz{position:sticky;left:0;top:26px;z-index:2;box-shadow:0 2px 0 #7a8aa8}
+.xt td.xfc{border-right:2px solid #7a8aa8}
+#xg.xrtl{direction:rtl}
+#xg.xrtl .xt{left:auto;right:0}
+#xg.xrtl .xt.xfz{left:auto;right:0}
+#xg.xrtl .xt th.rh{left:auto;right:0}
+#xg.xrtl .xh .xcorner{left:auto;right:0}
+#xg.xrtl .xt td.xfc{border-right:0;border-left:2px solid #7a8aa8}
 #xtabs{display:flex;gap:4px;overflow-x:auto;padding:5px 6px calc(5px + env(safe-area-inset-bottom));background:var(--bar);border-top:1px solid var(--line)}
 #xtabs button{flex:none;padding:6px 12px;font-size:14px;border-radius:10px}
 #xtabs .on{background:var(--acc);border-color:var(--acc);color:#fff}

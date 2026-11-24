@@ -281,7 +281,14 @@ async function wordEdit(){
  const SIZES=[8,9,10,11,12,14,16,18,20,24,28,32,36,48,72];
  const blockOf=()=>{let n=getSelection().anchorNode;while(n&&n!==ed&&!(n.nodeType===1&&/^(P|DIV|LI|H[1-6]|TD|TH|BLOCKQUOTE)$/.test(n.tagName)))n=n.parentNode;return n&&n!==ed?n:null};
  const replaceText=async()=>{const a=await raAsk('ابحث عن النص');if(!a)return;const b=await raAsk('استبدال بـ');if(b===null)return;let count=0;const w=document.createTreeWalker(ed,NodeFilter.SHOW_TEXT);const ns=[];while(w.nextNode())ns.push(w.currentNode);ns.forEach(n=>{if(n.nodeValue.includes(a)){const parts=n.nodeValue.split(a);count+=parts.length-1;n.nodeValue=parts.join(b)}});if(count)O.dirty=1;toast(count?'تم استبدال '+count+' موضع':'ملقتش النص')};
- const stats=()=>{const t=(ed.innerText||'').trim(),words=t? t.split(/\s+/).length:0;toast('الكلمات: '+words+' · الأحرف: '+t.length)};
+ const convDigits=async()=>{const r0=rg?rg.cloneRange():null,has=!!(r0&&!r0.collapsed&&ed.contains(r0.commonAncestorContainer));
+ const a=await raAsk('تحويل الأرقام '+(has?'في التحديد':'في المستند كله (مفيش تحديد)')+'\n1 = عربي ٠١٢٣\n2 = إنجليزي 0123','1');if(a===null||a===undefined)return;
+ const toAr=String(a).trim()!=='2',ns=[],root=has?r0.commonAncestorContainer:ed;
+ if(root.nodeType===3)ns.push(root);else{const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);while(w.nextNode())ns.push(w.currentNode)}
+ let cnt=0;ns.forEach(n=>{if(has&&!r0.intersectsNode(n))return;const v=n.nodeValue;let s=0,e=v.length;if(has&&n===r0.startContainer)s=r0.startOffset;if(has&&n===r0.endContainer)e=r0.endOffset;if(e<=s)return;
+  const mid=v.slice(s,e),nm=raDigits(mid,toAr);if(nm!==mid){cnt+=(mid.match(toAr?/[0-9]/g:/[٠-٩۰-۹]/g)||[]).length;n.nodeValue=v.slice(0,s)+nm+v.slice(e)}});
+ if(cnt)O.dirty=1;toast(cnt?'اتحوّل '+cnt+' رقم':'مفيش أرقام تتحوّل')};
+const stats=()=>{const t=(ed.innerText||'').trim(),words=t? t.split(/\s+/).length:0;toast('الكلمات: '+words+' · الأحرف: '+t.length)};
  const insertTOC=()=>{const hs=[...ed.querySelectorAll('h1,h2,h3')].map(h=>({tag:h.tagName,text:(h.innerText||'').trim()})).filter(x=>x.text);if(!hs.length){toast('استخدم أنماط عنوان 1 أو 2 أو 3 أولاً');return}const html='<div data-reader-toc="1"><h2>جدول المحتويات</h2><ol>'+hs.map(x=>'<li style="margin-right:'+((+x.tag.slice(1)-1)*18)+'px">'+esc(x.text)+'</li>').join('')+'</ol></div><p><br></p>';restore();document.execCommand('insertHTML',false,html);O.dirty=1;toast('تم إدراج جدول المحتويات؛ حدّثه بإعادة إدراجه بعد تعديل العناوين')};
  const insertDate=()=>{restore();document.execCommand('insertText',false,new Date().toLocaleDateString('ar-EG'));O.dirty=1};
  setBar([
@@ -305,8 +312,12 @@ async function wordEdit(){
    rec.onresult=e=>{const t=e.results&&e.results[0]&&e.results[0][0]&&e.results[0][0].transcript;if(t)put(t)};
    rec.onerror=e=>{const m={'not-allowed':'الميكروفون مش مسموح — فعّل إذنه من إعدادات الموقع أو التطبيق','service-not-allowed':'خدمة التعرف على الصوت مش متاحة على الجهاز ده','network':'الإملاء الصوتي محتاج إنترنت','no-speech':'ما اتسمعش كلام، جرّب تاني','audio-capture':'مفيش ميكروفون متاح على الجهاز','language-not-supported':'اللغة العربية مش مدعومة في خدمة الصوت'}[e.error];toast(m||'تعذر الإملاء الصوتي: '+(e.error||'حاول مرة أخرى'))};
    try{rec.start()}catch(e){toast('تعذر تشغيل الإملاء الصوتي')}}},'|',
-  ...wp.items.page,{t:'📑 فهرس تلقائي',f:insertTOC},{t:'📅 تاريخ',f:insertDate},{t:'بحث/استبدال',f:replaceText},{t:'🔢 إحصاء',f:stats},{t:'⬇ PDF',f:pdf},{t:'🖨 طباعة',f:printOffice},{t:'🔐 نسخة مشفرة',f:encryptedExport}]);
- async function save(dlOnly){try{busy(true,'جاري الحفظ…');const dx=await need('dx');const blob=await htmlToDocx(dx,ed,{live:1}),buf=await blob.arrayBuffer();await saveBuf(buf);busy(false);if(dlOnly===1)dl(new Blob([buf],{type:MIME.doc}),O.d.n+'.docx');else toast('اتحفظ ✅')}catch(e){fail('فشل الحفظ',e)}}
+  ...wp.items.page,{t:'📑 فهرس تلقائي',f:insertTOC},{t:'📅 تاريخ',f:insertDate},{t:'بحث/استبدال',f:replaceText},{t:'١٢٣ أرقام',title:'تحويل الأرقام عربي/إنجليزي',f:convDigits},{t:'🔢 إحصاء',f:stats},{t:'⬇ PDF',f:pdf},{t:'🖨 طباعة',f:printOffice},{t:'🔐 نسخة مشفرة',f:encryptedExport}]);
+ async function save(dlOnly){try{busy(true,'جاري الحفظ…');const dx=await need('dx');const blob=await htmlToDocx(dx,ed,{live:1}),buf=await blob.arrayBuffer();await saveBuf(buf);busy(false);
+  if(dlOnly===1){let out=buf;const sc=raFontScan(ed);
+   if(sc.hits.length&&await raYN('المستند فيه خطوط ممكن مش تكون موجودة على جهاز اللي هيفتح الملف: '+sc.names.slice(0,5).join('، ')+(sc.names.length>5?'…':'')+'\nلو مش موجودة، Word هيعرض خط تاني وشكل المستند ممكن يتغير.\nأستبدلها في الملف المُنزَّل بس بـ Traditional Arabic (للخطوط النسخ) أو Arial؟ المستند جوه التطبيق مش هيتغير.','استبدال','سيبها زي ما هي')){
+    busy(true,'جاري التصدير…');raFontSwap(sc.hits);try{out=await (await htmlToDocx(dx,ed,{live:1})).arrayBuffer()}finally{raFontUndo(sc.hits)}busy(false)}
+   dl(new Blob([out],{type:MIME.doc}),O.d.n+'.docx')}else toast('اتحفظ ✅')}catch(e){fail('فشل الحفظ',e)}}
  async function pdf(){let box;try{busy(true,'جاري تحويل PDF…');box=E('div','ofprint');box.innerHTML=ed.innerHTML;const ratio=window.WordPro?window.WordPro.printBox(box):1.4142;document.body.append(box);const b=await longToPdf(box,ratio);box.remove();busy(false);dl(b,O.d.n+'.pdf')}catch(e){box&&box.remove();fail('فشل التصدير',e)}}
  O.cleanup=()=>{document.removeEventListener('selectionchange',O.sc);document.removeEventListener('selectionchange',showFont);wp.cleanup&&wp.cleanup()}}
 
@@ -418,6 +429,9 @@ async function xlsParse(buf){const ex=await need('xl'),wb=new ex.Workbook();awai
   ws.eachRow({includeEmpty:false},(row,r)=>{row.eachCell({includeEmpty:true},(cell,c)=>{const o=convCell(ex,cell);if(o){sh.cells[K(r-1,c-1)]=o;R=Math.max(R,r);C=Math.max(C,c)}})});
   for(let c=1;c<=C;c++){const w=ws.getColumn(c).width;if(w)sh.cw[c-1]=Math.round(w*7+5)}
   ((ws.model&&ws.model.merges)||[]).forEach(m=>{const [a,b]=m.split(':'),p=parseA(a),q=parseA(b);if(p&&q)sh.merges.push([p.r,p.c,q.r,q.c])});
+  try{const v=ws.views&&ws.views[0];if(v&&v.state==='frozen'&&(v.xSplit||v.ySplit))sh.fz={r:v.ySplit||0,c:v.xSplit||0};if(v&&v.rightToLeft)sh.rtl=1}catch(e){}
+  try{const af=ws.autoFilter;if(af){const A=x=>typeof x==='string'?x:(x&&x.row?colName(x.column-1)+x.row:'');sh.af=typeof af==='string'?af:(A(af.from)&&A(af.to)?A(af.from)+':'+A(af.to):null);if(!sh.af)delete sh.af}}catch(e){}
+  try{const cf=ws.conditionalFormattings;if(cf&&cf.length)sh.cf=JSON.parse(JSON.stringify(cf))}catch(e){}
   sh.NR=Math.max(R+60,100);sh.NC=Math.min(300,Math.max(C+6,20));M.sheets.push(sh)});
  if(!M.sheets.length)M.sheets.push(newSheet('Sheet1'));return M}
 function applySt(cell,s){const f={};if(s.b)f.bold=true;if(s.i)f.italic=true;if(s.u)f.underline=true;if(s.st)f.strike=true;if(s.c)f.color={argb:'FF'+s.c.slice(1)};
@@ -432,7 +446,12 @@ async function xlsBuild(M){const ex=await need('xl'),wb=new ex.Workbook();
    if(o.f!==undefined){const v=o.v;cell.value={formula:o.f,result:typeof v==='string'&&v[0]==='#'?{error:v}:v}}else if(o.v!==undefined)cell.value=o.v;
    if(o.s)applySt(cell,o.s)}
   for(const c in sh.cw)ws.getColumn(+c+1).width=Math.max(2,(sh.cw[c]-5)/7);
-  for(const m of sh.merges){try{ws.mergeCells(m[0]+1,m[1]+1,m[2]+1,m[3]+1)}catch(e){}}}
+  for(const m of sh.merges){try{ws.mergeCells(m[0]+1,m[1]+1,m[2]+1,m[3]+1)}catch(e){}}
+  try{const f=sh.fz,v={};if(f&&(f.r||f.c)){v.state='frozen';v.xSplit=f.c||0;v.ySplit=f.r||0}if(sh.rtl)v.rightToLeft=true;if(Object.keys(v).length)ws.views=[v]}catch(e){}
+  try{(sh.cf||[]).forEach(x=>{try{ws.addConditionalFormatting(x)}catch(e){}})}catch(e){}
+  try{const H=fltHidden(sh);if(sh.flt){let mc=0;for(const k in sh.cells){const [r,c]=k.split(',').map(Number);if(r===sh.flt.hr&&c>mc)mc=c}let last=0;for(const k in sh.cells){const r=+k.split(',')[0];if(r>last)last=r}
+    ws.autoFilter=colName(0)+(sh.flt.hr+1)+':'+colName(mc)+(last+1)}else if(sh.af)ws.autoFilter=sh.af;
+   if(H)H.forEach(r=>{ws.getRow(r+1).hidden=true})}catch(e){}}
  const b=await wb.xlsx.writeBuffer();return b instanceof ArrayBuffer?b:b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength)}
 function parseCsv(t){t=t.replace(/^\uFEFF/,'');const l1=t.split('\n')[0],D=[',',';','\t'].sort((a,b)=>l1.split(b).length-l1.split(a).length)[0];
  const rows=[];let r=[],f='',q=0;for(let i=0;i<t.length;i++){const ch=t[i];
@@ -485,7 +504,7 @@ async function xlsOpen(){const M=await xlsParse(O.buf.slice(0));
  XS={X:M,cur:0,sel:{r1:0,c1:0,r2:0,c2:0},undo:[],redo:[],clip:null,ext:0};
  for(const sh of M.sheets)await recalc(sh,false);
  const m=$('#ofm');m.className='ofx';m.innerHTML='<div id="xfb"><span id="xad">A1</span><input id="xin" dir="auto" autocomplete="off" enterkeyhint="done"><button id="xok" aria-label="تأكيد">✓</button></div><div id="xg"><div id="xi"></div></div><div id="xtabs"></div>';
- const g=$('#xg');XS.z=1;pinchZoom(g,g,()=>XS.z,z=>{XS.z=z;xrender()},.5,3);g.addEventListener('scroll',()=>{if(XS.raf)return;XS.raf=requestAnimationFrame(()=>{XS.raf=0;const sh=curSh();if((g.scrollTop+g.clientHeight)/(XS.z||1)>HH+sh.NR*RH-300&&sh.NR<5000)sh.NR+=50;xrender()})},{passive:true});
+ const g=$('#xg');XS.z=1;pinchZoom(g,g,()=>XS.z,z=>{XS.z=z;xrender()},.5,3);g.addEventListener('scroll',()=>{if(XS.raf)return;XS.raf=requestAnimationFrame(()=>{XS.raf=0;const sh=curSh();if((g.scrollTop+g.clientHeight)/(XS.z||1)>HH+(XS.nd||sh.NR)*RH-300&&sh.NR<5000)sh.NR+=50;xrender()})},{passive:true});
  g.addEventListener('click',xclick);
  const inp=$('#xin');inp.addEventListener('focus',()=>{XS.edit={r:XS.sel.r1,c:XS.sel.c1,raw:inp.value}});
  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();moveSel(1,0)}});
@@ -503,22 +522,94 @@ function xclick(e){const sh=curSh(),s=XS.sel;const td=e.target.closest('td[data-
  else if(ch){s.c1=s.c2=+ch.dataset.ch;s.r1=0;s.r2=sh.NR-1}
  else return;xrender();loadFB()}
 function xrender(){const sh=curSh(),g=$('#xg'),xi=$('#xi');if(!g||!xi)return;
+ g.classList.toggle('xrtl',!!sh.rtl);const SD=sh.rtl?'right':'left',vis=visList(sh),ND=vis?vis.length:sh.NR;XS.nd=ND;const fz=sh.fz||{},fr=Math.min(fz.r||0,ND),fc=Math.min(fz.c||0,sh.NC),cfs=cfCompile(sh);
  const cw=c=>sh.cw[c]||DCW,xs=[0];for(let c=0;c<sh.NC;c++)xs.push(xs[c]+cw(c));const tw=HW+xs[sh.NC];
- const z=XS.z||1;xi.style.zoom=String(z);xi.style.width=tw+'px';xi.style.height=(HH+sh.NR*RH)+'px';
- let r0=Math.max(0,Math.floor((g.scrollTop/z-HH)/RH)-4);const r1=Math.min(sh.NR,Math.ceil((g.scrollTop+g.clientHeight)/z/RH)+4);
- const mg={},cov={};for(const m of sh.merges){if(m[2]<r0||m[0]>=r1)continue;if(m[0]<r0&&m[2]>=r0)r0=m[0]}
- for(const m of sh.merges){if(m[2]<r0||m[0]>=r1)continue;mg[K(m[0],m[1])]=m;for(let r=m[0];r<=m[2];r++)for(let c=m[1];c<=m[3];c++)if(r!==m[0]||c!==m[1])cov[K(r,c)]=1}
+ const z=XS.z||1;xi.style.zoom=String(z);xi.style.width=tw+'px';xi.style.height=(HH+ND*RH)+'px';
+ let r0=Math.max(0,Math.floor((g.scrollTop/z-HH)/RH)-4);const r1=Math.min(ND,Math.ceil((g.scrollTop+g.clientHeight)/z/RH)+4);
+ const mg={},cov={},mgF={},covF={};
+ if(!vis){for(const m of sh.merges){if(m[2]<r0||m[0]>=r1)continue;if(m[0]<r0&&m[2]>=r0)r0=m[0]}
+  for(const m of sh.merges){if(m[2]<r0||m[0]>=r1)continue;mg[K(m[0],m[1])]=m;for(let r=m[0];r<=m[2];r++)for(let c=m[1];c<=m[3];c++)if(r!==m[0]||c!==m[1])cov[K(r,c)]=1}
+  if(fr)for(const m of sh.merges){if(m[0]>=fr)continue;mgF[K(m[0],m[1])]=m;for(let r=m[0];r<=Math.min(m[2],fr-1);r++)for(let c=m[1];c<=m[3];c++)if(r!==m[0]||c!==m[1])covF[K(r,c)]=1}}
+ if(fr&&r0<fr)r0=fr;
  const q=rng(),a=XS.sel;
- let h='<div class="xh" style="width:'+tw+'px"><span class="xcorner" style="width:'+HW+'px"></span>';
- for(let c=0;c<sh.NC;c++)h+='<span data-ch="'+c+'" class="'+(c>=q.c1&&c<=q.c2?'xs':'')+'" style="width:'+cw(c)+'px">'+colName(c)+'</span>';
- h+='</div><table class="xt" style="top:'+(HH+r0*RH)+'px;width:'+tw+'px"><colgroup><col style="width:'+HW+'px">';
- for(let c=0;c<sh.NC;c++)h+='<col style="width:'+cw(c)+'px">';h+='</colgroup><tbody>';
- for(let r=r0;r<r1;r++){h+='<tr style="height:'+RH+'px"><th class="rh'+(r>=q.r1&&r<=q.r2?' xs':'')+'" data-rh="'+r+'">'+(r+1)+'</th>';
-  for(let c=0;c<sh.NC;c++){const k=K(r,c);if(cov[k])continue;const o=sh.cells[k],m=mg[k];
+ const colgrp='<colgroup><col style="width:'+HW+'px">'+Array.from({length:sh.NC},(_,c)=>'<col style="width:'+cw(c)+'px">').join('')+'</colgroup>';
+ const rowsHtml=(p0,p1,MG,COV,lim)=>{let h='';for(let p=p0;p<p1;p++){const r=vis?vis[p]:p;if(r===undefined)break;
+  h+='<tr style="height:'+RH+'px"><th class="rh'+(r>=q.r1&&r<=q.r2?' xs':'')+'" data-rh="'+r+'">'+(r+1)+'</th>';
+  for(let c=0;c<sh.NC;c++){const k=K(r,c);if(COV[k])continue;const o=sh.cells[k],m=MG[k];
    const on=r>=q.r1&&r<=q.r2&&c>=q.c1&&c<=q.c2,act=r===a.r1&&c===a.c1;
-   h+='<td data-r="'+r+'" data-c="'+c+'" dir="auto" class="'+(on?'xs ':'')+(act?'xa ':'')+(o&&typeof o.v==='string'&&o.v[0]==='#'?'xe':'')+'"'+(m?' colspan="'+(m[3]-m[1]+1)+'" rowspan="'+(Math.min(m[2],r1-1)-m[0]+1)+'"':'')+(o&&o.s?' style="'+cstyle(o)+'"':o&&typeof o.v==='number'?' style="text-align:right"':'')+'>'+esc(disp(o))+'</td>'}
-  h+='</tr>'}
- xi.innerHTML=h+'</tbody></table>'}
+   let st=o&&o.s?cstyle(o):o&&typeof o.v==='number'?'text-align:right':'';
+   if(cfs.length)st+=cfCss(cfs,r,c,o);
+   if(c<fc)st+='position:sticky;'+SD+':'+(HW+xs[c])+'px;z-index:1;';
+   h+='<td data-r="'+r+'" data-c="'+c+'" dir="auto" class="'+(on?'xs ':'')+(act?'xa ':'')+(fc&&c===fc-1?'xfc ':'')+(o&&typeof o.v==='string'&&o.v[0]==='#'?'xe':'')+'"'+(m?' colspan="'+(m[3]-m[1]+1)+'" rowspan="'+(Math.min(m[2],lim-1)-m[0]+1)+'"':'')+(st?' style="'+st+'"':'')+'>'+esc(disp(o))+'</td>'}
+  h+='</tr>'}return h};
+ let h='<div class="xh" style="width:'+tw+'px"><span class="xcorner" style="width:'+HW+'px"></span>';
+ for(let c=0;c<sh.NC;c++)h+='<span data-ch="'+c+'" class="'+(c>=q.c1&&c<=q.c2?'xs':'')+'" style="width:'+cw(c)+'px'+(c<fc?';position:sticky;'+SD+':'+(HW+xs[c])+'px;z-index:4;background:#eef1f6':'')+'">'+colName(c)+'</span>';
+ h+='</div>';
+ if(fr)h+='<table class="xt xfz" style="width:'+tw+'px">'+colgrp+'<tbody>'+rowsHtml(0,fr,mgF,covF,fr)+'</tbody></table>';
+ h+='<table class="xt" style="top:'+(HH+r0*RH)+'px;width:'+tw+'px">'+colgrp+'<tbody>'+rowsHtml(r0,r1,mg,cov,r1)+'</tbody></table>';
+ xi.innerHTML=h;
+ const f=xi.querySelector('.xfz'),hd=xi.querySelector('.xh');if(f&&hd){const hh=hd.offsetHeight||HH;f.style.top=hh+'px';f.style.marginTop=(HH-hh)+'px'}}
+// ---- font check before DOCX download ----
+const RA_SAFE=new Set(['calibri','calibri light','cambria','arial','times new roman','courier new','georgia','verdana','tahoma','segoe ui','trebuchet msbs','trebuchet ms','consolas','comic sans ms','impact','traditional arabic','simplified arabic','sakkal majalla','arabic typesetting','andalus','arial unicode ms','symbol','wingdings']);
+const RA_NASKH=/^(amiri|noto naskh arabic|lateef|scheherazade new|markazi text)$/i;
+function raFontScan(root){const hits=[],names=new Set();
+ for(const el of [root,...root.querySelectorAll('*')]){for(const [src,val] of [['s',el.style&&el.style.fontFamily||''],['f',el.getAttribute&&el.getAttribute('face')||'']]){if(!val)continue;
+  const fn=val.split(',')[0].replace(/["']/g,'').trim();if(!fn||GEN.test(fn)||RA_SAFE.has(fn.toLowerCase()))continue;names.add(fn);hits.push({el,src,old:val,fn})}}
+ return {hits,names:[...names]}}
+const raFontSwap=hits=>hits.forEach(h=>{const r=RA_NASKH.test(h.fn)?'Traditional Arabic':'Arial';if(h.src==='s')h.el.style.fontFamily='"'+r+'"';else h.el.setAttribute('face',r)});
+const raFontUndo=hits=>hits.forEach(h=>{if(h.src==='s')h.el.style.fontFamily=h.old;else h.el.setAttribute('face',h.old)});
+
+// ---- digit conversion (Arabic-Indic <-> Western) ----
+const RA_AR='٠١٢٣٤٥٦٧٨٩';
+function raDigits(str,toAr){if(toAr)return str.replace(/[0-9]/g,d=>RA_AR[d]);
+ return str.replace(/[٠-٩]/g,d=>String(d.charCodeAt(0)-0x660)).replace(/[۰-۹]/g,d=>String(d.charCodeAt(0)-0x6F0)).replace(/(\d)٫(?=\d)/g,'$1.').replace(/(\d)٬(?=\d)/g,'$1,')}
+
+// ---- freeze / filter / conditional formatting ----
+function fltTest(t,o){const s=String(disp(o)),v=o&&typeof o.v==='number'?o.v:parseFloat(s),m=/^(>=|<=|<>|>|<|=)\s*(.*)$/.exec(t);
+ if(m){const op=m[1],a=m[2].trim(),n=parseFloat(a);
+  if(op==='='||op==='<>'){const e=(!isNaN(n)&&!isNaN(v)&&String(n)===a)?v===n:s.toLowerCase()===a.toLowerCase();return op==='='?e:!e}
+  if(isNaN(n)||isNaN(v))return false;return op==='>'?v>n:op==='<'?v<n:op==='>='?v>=n:v<=n}
+ return s.toLowerCase().includes(String(t).toLowerCase())}
+function fltHidden(sh){const f=sh.flt;if(!f)return null;const cols=Object.keys(f.rules||{});if(!cols.length)return null;let last=0;for(const k in sh.cells){const r=+k.split(',')[0];if(r>last)last=r}
+ const H=new Set();for(let r=f.hr+1;r<=last;r++)for(const c of cols)if(!fltTest(f.rules[c],sh.cells[K(r,+c)])){H.add(r);break}return H}
+function visList(sh){const H=fltHidden(sh);if(!H||!H.size)return null;const a=[];for(let r=0;r<sh.NR;r++)if(!H.has(r))a.push(r);return a}
+function parseRef(ref){const m=/^\$?([A-Z]+)\$?(\d+)(?::\$?([A-Z]+)\$?(\d+))?/.exec(String(ref||'').trim());if(!m)return null;const c1=colIdx(m[1]),r1=+m[2]-1,c2=m[3]?colIdx(m[3]):c1,r2=m[4]?+m[4]-1:r1;return {r1:Math.min(r1,r2),r2:Math.max(r1,r2),c1:Math.min(c1,c2),c2:Math.max(c1,c2)}}
+const cfCol=c=>c&&c.argb?'#'+String(c.argb).slice(-6):null;
+function cfCompile(sh){const out=[];for(const x of sh.cf||[]){const q=parseRef(x.ref);if(!q)continue;for(const r of x.rules||[]){const st=r.style||{},fl=st.fill||{},bg=cfCol(fl.bgColor)||cfCol(fl.fgColor),fc=cfCol(st.font&&st.font.color);
+  const css=(bg?'background:'+bg+';':'')+(fc?'color:'+fc+';':'')+(st.font&&st.font.bold?'font-weight:700;':'');let test=null;
+  if(r.type==='cellIs'){const f=r.formulae||[],a=f[0],b=f[1],na=parseFloat(a),nb=parseFloat(b),op=r.operator;
+   test=o=>{if(!o||o.v===undefined||o.v===null||o.v==='')return false;const v=o.v,nv=typeof v==='number'?v:parseFloat(v),num=!isNaN(na)&&!isNaN(nv);
+    switch(op){case 'greaterThan':return num&&nv>na;case 'lessThan':return num&&nv<na;case 'greaterThanOrEqual':return num&&nv>=na;case 'lessThanOrEqual':return num&&nv<=na;
+     case 'equal':return num?nv===na:String(v).toLowerCase()===String(a).replace(/^"|"$/g,'').toLowerCase();case 'notEqual':return num?nv!==na:String(v).toLowerCase()!==String(a).replace(/^"|"$/g,'').toLowerCase();
+     case 'between':return num&&!isNaN(nb)&&nv>=Math.min(na,nb)&&nv<=Math.max(na,nb);case 'notBetween':return num&&!isNaN(nb)&&(nv<Math.min(na,nb)||nv>Math.max(na,nb))}return false}}
+  else if(r.type==='containsText'&&r.text){const t=String(r.text).toLowerCase();test=o=>!!o&&o.v!==undefined&&String(o.v).toLowerCase().includes(t)}
+  if(test&&css)out.push({q,test,css})}}return out}
+function cfCss(cfs,r,c,o){let t='';for(const x of cfs){const q=x.q;if(r>=q.r1&&r<=q.r2&&c>=q.c1&&c<=q.c2&&x.test(o))t+=x.css}return t}
+function xrtl(){const sh=curSh();pushU();sh.rtl=sh.rtl?0:1;xrender();$('#xg').scrollLeft=0;toast(sh.rtl?'الشيت بقى من اليمين لليسار':'الشيت بقى من اليسار لليمين')}
+function xfreeze(){const sh=curSh(),a=rng();
+ if(sh.fz&&(sh.fz.r||sh.fz.c)){pushU();delete sh.fz;xrender();return toast('اتلغى التجميد')}
+ if(!a.r1&&!a.c1){return toast('حدّد خلية تحت الصفوف و/أو يمين الأعمدة اللي عايز تجمّدها (مثلاً A2 لتجميد أول صف)')}
+ pushU();sh.fz={r:a.r1,c:a.c1};xrender();toast('اتجمّد: '+a.r1+' صف، '+a.c1+' عمود')}
+async function xfilter(){const sh=curSh(),a=XS.sel;let f=sh.flt;const isNew=!f;if(isNew)f={hr:Math.min(a.r1,a.r2),rules:{}};
+ const col=a.c1,t=await raAsk('فلتر العمود '+colName(col)+' (صف العناوين '+(f.hr+1)+')\nاكتب نص للبحث، أو شرط مثل: >100  <50  =كلمة\nفاضي = إلغاء فلتر هذا العمود',f.rules[col]||'');
+ if(t===null||t===undefined)return;pushU();
+ if(t.trim())f.rules[col]=t.trim();else delete f.rules[col];
+ if(Object.keys(f.rules).length)sh.flt=f;else delete sh.flt;
+ const H=fltHidden(sh);xrender();toast(H?'مخفي '+H.size+' صف':'الفلتر متفعّل')}
+function xfilterClear(){const sh=curSh();if(!sh.flt&&!sh.af)return toast('مفيش فلتر');pushU();delete sh.flt;delete sh.af;xrender();toast('اتمسح الفلتر')}
+async function xcf(){const sh=curSh(),q=rng(),ref=colName(q.c1)+(q.r1+1)+(q.r1===q.r2&&q.c1===q.c2?'':':'+colName(q.c2)+(q.r2+1));
+ const t=await raAsk('تنسيق شرطي للنطاق '+ref+'\n>100  <50  >=10  <=5  =نص  10:20 (بين)  أو نص يحتويه\nفاضي = مسح تنسيق النطاق','');
+ if(t===null||t===undefined)return;pushU();
+ if(!t.trim()){sh.cf=(sh.cf||[]).filter(x=>{const z=parseRef(x.ref);return !(z&&z.r1<=q.r2&&z.r2>=q.r1&&z.c1<=q.c2&&z.c2>=q.c1)});xrender();return toast('اتمسح التنسيق الشرطي')}
+ const cl=await raAsk('اللون: 1 أحمر · 2 أخضر · 3 أصفر · 4 أزرق','1');if(cl===null||cl===undefined)return;
+ const P={1:['FFC7CE','9C0006'],2:['C6EFCE','006100'],3:['FFEB9C','9C5700'],4:['BDD7EE','1F4E79']}[String(cl).trim()]||['FFC7CE','9C0006'];
+ const style={fill:{type:'pattern',pattern:'solid',bgColor:{argb:'FF'+P[0]}},font:{color:{argb:'FF'+P[1]}}};
+ const s2=t.trim();let rule,m;
+ if(m=/^(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)$/.exec(s2))rule={type:'cellIs',operator:'between',formulae:[+m[1],+m[2]],style,priority:1};
+ else if(m=/^(>=|<=|>|<|=)\s*(.+)$/.exec(s2)){const op={'>':'greaterThan','<':'lessThan','>=':'greaterThanOrEqual','<=':'lessThanOrEqual','=':'equal'}[m[1]],v=m[2].trim(),n=parseFloat(v);
+  rule={type:'cellIs',operator:op,formulae:[isNaN(n)||String(n)!==v?'"'+v.replace(/"/g,'')+'"':n],style,priority:1}}
+ else rule={type:'containsText',operator:'containsText',text:s2,style,priority:1};
+ (sh.cf=sh.cf||[]).push({ref,rules:[rule]});xrender();toast('اتضاف التنسيق الشرطي')}
 // ---- editing ----
 const snap=()=>JSON.stringify({sheets:XS.X.sheets,cur:XS.cur});
 function pushU(){const s=snap();XS.undo.push(s);while(XS.undo.length>(s.length>1.5e6?3:30))XS.undo.shift();XS.redo=[];O.dirty=1}
@@ -546,7 +637,7 @@ async function paste(){const cl=XS.clip;if(!cl)return toast('مفيش حاجة �
  if(cl.cut&&cl.sheet===XS.cur){for(let r=0;r<cl.h;r++)for(let c=0;c<cl.w;c++)delete sh.cells[K(cl.r0+r,cl.c0+c)]}
  for(let r=0;r<cl.h;r++)for(let c=0;c<cl.w;c++){const s=cl.cells[K(r,c)],k=K(q.r1+r,q.c1+c);if(!s){delete sh.cells[k];continue}const o=JSON.parse(JSON.stringify(s));if(o.f!==undefined){o.f=shiftF(o.f,q.r1-cl.r0,q.c1-cl.c0);delete o.v;delete o.cv}sh.cells[k]=o}
  if(cl.cut)XS.clip=null;await recalc(sh,true);xrender()}
-function struct(axis,at,n,del){pushU();const sh=curSh(),nc={},R=axis==='r';
+function struct(axis,at,n,del){pushU();const sh=curSh();if(sh.flt){delete sh.flt;toast('اتلغى الفلتر بسبب تغيير الصفوف/الأعمدة')}const nc={},R=axis==='r';
  const mv=i=>del?(i>=at+n?i-n:i>=at?-1:i):(i>=at?i+n:i);
  for(const k in sh.cells){const [r,c]=k.split(',').map(Number),i=mv(R?r:c);if(i<0)continue;const o=sh.cells[k];
   if(o.f!==undefined)o.f=mapF(o.f,(a,ci,b,ri)=>{const x=R?ri:ci,y=mv(x);if(y<0)return '#REF!';ri=R?y:ri;ci=R?ci:y;return a+colName(ci)+b+(ri+1)});
@@ -556,12 +647,20 @@ function struct(axis,at,n,del){pushU();const sh=curSh(),nc={},R=axis==='r';
  if(!R){const cw={};for(const c in sh.cw){const i=mv(+c);if(i>=0)cw[i]=sh.cw[c]}sh.cw=cw;sh.NC=Math.max(20,sh.NC+(del?-n:n))}else sh.NR=Math.max(100,sh.NR+(del?-n:n));
  recalc(sh,true).then(()=>{xrender();loadFB()})}
 function colw(d){pushU();const sh=curSh(),q=rng();for(let c=q.c1;c<=q.c2;c++)sh.cw[c]=Math.max(30,(sh.cw[c]||DCW)+d);xrender()}
-function sortCol(asc){pushU();const sh=curSh(),q=rng(),rows=[];let last=-1;for(const k in sh.cells){const r=+k.split(',')[0];if(r>last)last=r}
+function sortCol(asc){pushU();const sh=curSh();if(sh.flt){delete sh.flt;toast('اتلغى الفلتر قبل الترتيب')}const q=rng(),rows=[];let last=-1;for(const k in sh.cells){const r=+k.split(',')[0];if(r>last)last=r}
  const c0=q.c1,r1=q.r1===q.r2?q.r1:q.r1,r2=q.r1===q.r2?last:q.r2;
  for(let r=r1;r<=r2;r++){const row={};for(let c=0;c<sh.NC;c++){const o=sh.cells[K(r,c)];if(o)row[c]=o}rows.push({row,key:(sh.cells[K(r,c0)]||{}).v})}
  rows.sort((a,b)=>{const x=a.key,y=b.key;if(x===undefined)return 1;if(y===undefined)return -1;const d=typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),'ar');return asc?d:-d});
  for(let r=r1;r<=r2;r++)for(let c=0;c<sh.NC;c++)delete sh.cells[K(r,c)];
  rows.forEach((x,i)=>{for(const c in x.row)sh.cells[K(r1+i,+c)]=x.row[c]});recalc(sh,true).then(xrender)}
+async function xdigits(){const q=rng(),sh=curSh();
+ const a=await raAsk('تحويل الأرقام في النطاق '+addrOf()+'\n1 = عربي ٠١٢٣ (للخلايا النصية)\n2 = إنجليزي 0123','1');if(a===null||a===undefined)return;
+ const toAr=String(a).trim()!=='2';pushU();let n=0;
+ for(const k in sh.cells){const [r,c]=k.split(',').map(Number);if(r<q.r1||r>q.r2||c<q.c1||c>q.c2)continue;const o=sh.cells[k];if(typeof o.v!=='string'||o.f!==undefined)continue;
+  const nv=raDigits(o.v,toAr);if(nv===o.v)continue;n++;
+  if(!toAr&&/^[-+]?(\d{1,3}(,\d{3})+|\d+)(\.\d+)?$/.test(nv.trim()))o.v=Number(nv.trim().replace(/,/g,''));else o.v=nv}
+ if(!n){XS.undo.pop();return toast('مفيش أرقام نصية تتحوّل في التحديد')}
+ await recalc(sh,true);xrender();loadFB();toast('اتحوّلت '+n+' خلية'+(toAr?' (الأرقام الحقيقية بتفضل زي ما هي عشان الدوال)':' (اللي بقت رقم صريح اتحولت لرقم)'))}
 async function xformula(){const q=rng(),range=colName(q.c1)+(q.r1+1)+':'+colName(q.c2)+(q.r2+1);const opts=['SUM','AVERAGE','MIN','MAX','COUNT','COUNTA','COUNTBLANK','PRODUCT','MEDIAN','MODE','STDEV','VAR','ABS','ROUND','ROUNDUP','ROUNDDOWN','INT','MOD','SQRT','POWER','IF','IFERROR','AND','OR','NOT','SUMIF','COUNTIF','AVERAGEIF','CONCATENATE','LEFT','RIGHT','MID','LEN','UPPER','LOWER','TRIM'];const f=await raAsk('اكتب اسم الدالة:\n'+opts.join(' · '),'SUM');if(!f)return;const fn=f.trim().toUpperCase();if(!opts.includes(fn))return toast('اسم الدالة غير موجود بالقائمة');let args=range;if(!['SUM','AVERAGE','MIN','MAX','COUNT','COUNTA','COUNTBLANK','PRODUCT','MEDIAN','MODE','STDEV','VAR'].includes(fn)){const ex={IF:'A1>0,\"نعم\",\"لا\"',IFERROR:'A1/B1,0',ROUND:'A1,2',ROUNDUP:'A1,0',ROUNDDOWN:'A1,0',MOD:'A1,2',POWER:'A1,2',LEFT:'A1,3',RIGHT:'A1,3',MID:'A1,2,3',SUMIF:'A1:A10,\">0\",B1:B10',COUNTIF:'A1:A10,\">0\"',AVERAGEIF:'A1:A10,\">0\"',CONCATENATE:'A1,B1',AND:'A1>0,B1>0',OR:'A1>0,B1>0',NOT:'A1>0'};const a=await raAsk('اكتب معاملات '+fn+' بدون علامة ='+fn+' (مثال: '+(ex[fn]||'A1')+')',ex[fn]||'A1');if(a===null)return;args=a.trim()}commit('='+fn+'('+args+')',q.r1,q.c1)}
 function xclear(){const q=rng(),sh=curSh();pushU();for(let r=q.r1;r<=q.r2;r++)for(let c=q.c1;c<=q.c2;c++){const k=K(r,c),o=sh.cells[k];if(o){delete o.v;delete o.f;delete o.cv;if(!o.s||!Object.keys(o.s).length)delete sh.cells[k]}}recalc(sh,true).then(()=>{xrender();loadFB()})}
 async function xfindreplace(){const find=await raAsk('ابحث عن:', '');if(!find)return;const rep=await raAsk('استبدال بـ (اتركه فارغًا للحذف):','');const sh=curSh();let n=0;pushU();for(const k in sh.cells){const o=sh.cells[k];if(typeof o.v==='string'&&o.v.includes(find)){o.v=o.v.split(find).join(rep);n++}}xrender();loadFB();toast('تم استبدال '+n+' خلية')}
@@ -578,13 +677,13 @@ function xbar(){
  const xcol=(ph,key)=>colorBtn({label:ph,title:key==='bg'?'لون الخلفية':'لون الخط',init:key==='bg'?'#FFFF00':'#FF0000',onPick:c=>setS(key,c)});
  setBar([{t:'💾',title:'حفظ',f:xsave},{t:'⬇ XLSX',f:()=>xsave(1)},'|',
   {t:'↶',f:undo,title:'تراجع'},{t:'↷',f:redo,title:'إعادة'},'|',
-  {t:'ƒx دوال',f:xformula},{t:'بحث/استبدال',f:xfindreplace},{t:'تاريخ اليوم',f:xinsertDate},{t:'مسح المحتوى',f:xclear},'|',
+  {t:'ƒx دوال',f:xformula},{t:'١٢٣ أرقام',f:xdigits},{t:'بحث/استبدال',f:xfindreplace},{t:'تاريخ اليوم',f:xinsertDate},{t:'مسح المحتوى',f:xclear},'|',
   {t:'<b>B</b>',f:()=>tog('b')},{t:'<i>I</i>',f:()=>tog('i')},{t:'<u>U</u>',f:()=>tog('u')},{t:'S̶',f:()=>tog('st'),title:'يتوسطه خط'},xcol('A لون','c'),xcol('🎨 خلفية','bg'),
   {t:'⬅',f:()=>setS('al','left')},{t:'↔',f:()=>setS('al','center')},{t:'➡',f:()=>setS('al','right')},{t:'⏎ التفاف',f:()=>tog('w')},{t:'▦ حدود',f:()=>tog('bd')},{el:nf},'|',
   {t:'⬚ نطاق',f:b=>{XS.ext=!XS.ext;b.classList.toggle('on',XS.ext)}},{t:'⊞ دمج',f:()=>merge()},{t:'⊟ فك',f:()=>merge(1)},'|',
   {t:'نسخ',f:()=>copy()},{t:'قص',f:()=>copy(1)},{t:'لصق',f:paste},{t:'⬇ تعبئة',f:()=>fill('d')},{t:'➡ تعبئة',f:()=>fill('r')},'|',
   {t:'نسخ الشيت',f:xduplicateSheet},{t:'＋صف',f:()=>struct('r',rng().r1,1,0)},{t:'＋عمود',f:()=>struct('c',rng().c1,1,0)},{t:'－صف',f:()=>{const q=rng();struct('r',q.r1,q.r2-q.r1+1,1)}},{t:'－عمود',f:()=>{const q=rng();struct('c',q.c1,q.c2-q.c1+1,1)}},'|',
-  {t:'↔＋',f:()=>colw(16)},{t:'↔－',f:()=>colw(-16)},{t:'A→Z',f:()=>sortCol(1)},{t:'Z→A',f:()=>sortCol(0)},{t:'🖨 طباعة',f:printOffice},{t:'🔐 نسخة مشفرة',f:encryptedExport}])}
+  {t:'↔＋',f:()=>colw(16)},{t:'↔－',f:()=>colw(-16)},{t:'A→Z',f:()=>sortCol(1)},{t:'Z→A',f:()=>sortCol(0)},{t:'⇄ اتجاه الشيت',f:xrtl},{t:'❄ تجميد',f:xfreeze},{t:'🔽 فلتر',f:xfilter},{t:'✖ فلتر',f:xfilterClear},{t:'🎨 شرطي',f:xcf},{t:'🖨 طباعة',f:printOffice},{t:'🔐 نسخة مشفرة',f:encryptedExport}])}
 async function xsave(dlOnly){try{busy(true,'جاري الحفظ…');if(document.activeElement===$('#xin'))$('#xin').blur();const buf=await xlsBuild(XS.X);await saveBuf(buf);busy(false);if(dlOnly===1)dl(new Blob([buf],{type:MIME.xls}),O.d.n+'.xlsx');else toast('اتحفظ ✅')}catch(e){fail('فشل الحفظ',e)}}
 async function xpdf(){try{busy(true,'جاري تحويل PDF…');const sh=curSh();let R=0,C=0;for(const k in sh.cells){const [r,c]=k.split(',').map(Number);R=Math.max(R,r);C=Math.max(C,c)}
  const cov={},mg={};for(const m of sh.merges){mg[K(m[0],m[1])]=m;for(let r=m[0];r<=m[2];r++)for(let c=m[1];c<=m[3];c++)if(r!==m[0]||c!==m[1])cov[K(r,c)]=1}

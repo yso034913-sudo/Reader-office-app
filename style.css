@@ -43,6 +43,8 @@ input[type=search],input[type=text],input.mn,input:not([type]),select{background
 .it small{color:var(--fg2)}
 .it button{background:none;border:0;padding:8px;color:var(--fg2)}
 .it .lkb.on{color:var(--hl)}
+.it .pn,.it .cl{min-width:32px!important;padding:6px 2px!important}
+.it .pn:not(.on){opacity:.4}
 .ft{flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:12px;font-weight:700;cursor:pointer;color:#fff}
 .ft.nt{background:#18794e}
 .em{text-align:center;color:var(--fg2);padding:36px 12px}

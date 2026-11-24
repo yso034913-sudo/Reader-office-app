@@ -72,3 +72,30 @@ All internal identifiers use the Reader All name: IndexedDB `readerall`, localSt
 
 - The Word font list now really changes the text on Android. Latin fonts are bundled in `fonts/` (subset, ~430 KB) and registered under the Office names: Calibri→Carlito, Cambria→Caladea, Arial→Liberation Sans, Times New Roman→Liberation Serif, Courier New→Liberation Mono, Georgia→Gelasio, Tahoma/Verdana/Segoe UI/Trebuchet MS→Open Sans (metric-compatible or look-alike open fonts; the file keeps the original name).
 - Arabic fonts (Cairo, Amiri, Tajawal, Almarai, Noto Naskh/Kufi; Traditional/Simplified Arabic → Noto Naskh; Sakkal Majalla/Arabic Typesetting → Amiri) are bundled at build time from `@fontsource/*` by `scripts/arabic-fonts.py`. This step needs `npm install` and was only tested with mock files; a missing package prints a warning and that font falls back to the system font.
+
+## Excel: freeze, filter, conditional formatting
+
+- **❄ تجميد**: select the cell below/right of what to freeze (B2 = first row + first column); press again to unfreeze. Saved to .xlsx.
+- **🔽 فلتر**: select the header cell first, then press it on any column and type text, or `>100`, `<50`, `=word`. Hidden rows are also hidden in the exported .xlsx. **✖ فلتر** clears it.
+- **🎨 شرطي**: for the selected range type `>100`, `<50`, `10:20` (between), `=word` or text to contain, then pick a colour. Rules are written as real Excel conditional formats. Empty input clears the range.
+- Not covered: charts. Saving rebuilds the workbook, so existing charts/images in an imported .xlsx are not preserved. Only syntax-checked and helper-tested in Node, not on a device.
+
+## File list: pin & colour labels
+
+- 📌 pins a file to the top of its tab (above the chosen sort order); tap again to unpin.
+- ● cycles a colour label (red, orange, green, blue, purple, none), shown as a stripe on the file row.
+- Folders already existed as the tag button; search and tag filter work with them. Not device-tested.
+
+## Digit conversion (١٢٣ أرقام)
+
+- Word: converts the selected text (or the whole document when nothing is selected) between Arabic-Indic (٠١٢٣, also ۰۱۲۳ and ٫ ٬ separators) and Western (0123) digits.
+- Excel: converts the selected range's text cells. Real numeric cells and formulas are left untouched so calculations keep working; text like "١٢٣" converted to English becomes a real number.
+- Only syntax-checked and the conversion function tested in Node; not device-tested.
+
+## Excel sheet direction (⇄ اتجاه الشيت)
+
+Toggles right-to-left for the current sheet (columns start from the right, row numbers on the right). Saved as the sheet's `rightToLeft` view in the .xlsx, and read back when a file that has it is opened (the built-in Excel templates already use it). Per-sheet; syntax-checked only, not device-tested.
+
+## Font check before DOCX download
+
+When you press **⬇ DOCX**, the editor looks for fonts that are not normally installed with Office (Cairo, Tajawal, Almarai, Amiri, Noto..., etc.). If it finds any it asks whether to replace them in the **downloaded file only** (naskh-style fonts such as Amiri → Traditional Arabic, everything else → Arial). The document stored in the app keeps its original fonts. Plain save (💾) is not affected. Only syntax-checked and the scan/swap/restore logic tested in Node; not device-tested.
