@@ -21,6 +21,12 @@
     "@ffmpeg/ffmpeg": "0.12.10",
     "@ffmpeg/core": "0.12.6",
     "@capacitor/camera": "^6.0.0",
-    "@capacitor-community/speech-recognition": "^6.0.0"
+    "@capacitor-community/speech-recognition": "^6.0.0",
+    "@fontsource/cairo": "^5.0.0",
+    "@fontsource/amiri": "^5.0.0",
+    "@fontsource/tajawal": "^5.0.0",
+    "@fontsource/almarai": "^5.0.0",
+    "@fontsource/noto-naskh-arabic": "^5.0.0",
+    "@fontsource/noto-kufi-arabic": "^5.0.0"
   }
 }

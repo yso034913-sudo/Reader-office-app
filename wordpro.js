@@ -102,17 +102,37 @@ function mount(ctx){
  H.t.oninput=()=>{O.wordHF.header=H.t.value;grow(H.t);dirty()};F.t.oninput=()=>{O.wordHF.footer=F.t.value;grow(F.t);dirty()};
  const guideOn=()=>lsGet('ra_wguide','1')!=='0';
  let tmr=0;
- function refresh(){const p=O.wordPage,hf=O.wordHF,d=dims(p),w=d[0],h=d[1],small=innerWidth<600,k=small?.5:1;
-  pg.style.width='min(100%,'+Math.round(w/15)+'px)';
-  const L=(p.ml/w*100*k).toFixed(2),R=(p.mr/w*100*k).toFixed(2);
-  ed.style.paddingLeft='max(14px,'+L+'%)';ed.style.paddingRight='max(14px,'+R+'%)';
-  [H.b,F.b].forEach(b=>{b.style.paddingLeft='max(14px,'+L+'%)';b.style.paddingRight='max(14px,'+R+'%)'});
+const Z={z:1},sc=pg.parentElement;
+ function refresh(){const p=O.wordPage,hf=O.wordHF,d=dims(p),w=d[0],h=d[1],PW=w/15,PH=h/15;
+  // real paper size: 1440 twips = 96 CSS px. The whole sheet is scaled (CSS zoom) to fit the screen width, then by the user's pinch zoom.
+  const avail=Math.max(160,((sc&&sc.clientWidth)||innerWidth)-16),fit=Math.min(1,avail/PW);
+  Z.fit=fit;pg.style.width=PW+'px';pg.style.minHeight=PH+'px';pg.style.display='flex';pg.style.flexDirection='column';pg.style.zoom=String(+(fit*Z.z).toFixed(4));
+  ed.style.flex='1 1 auto';ed.style.minHeight='0';ed.style.paddingLeft=(p.ml/15)+'px';ed.style.paddingRight=(p.mr/15)+'px';
+  [H.b,F.b].forEach(b=>{b.style.paddingLeft=(p.ml/15)+'px';b.style.paddingRight=(p.mr/15)+'px'});
+  H.b.style.paddingTop=(p.hd/15)+'px';F.b.style.paddingBottom=(p.fd/15)+'px';
   if(H.t.value!==(hf.header||''))H.t.value=hf.header||'';if(F.t.value!==(hf.footer||''))F.t.value=hf.footer||'';H.t.style.textAlign=hf.ha;F.t.style.textAlign=hf.fa;grow(H.t);grow(F.t);
-  const sc=(pg.clientWidth||w/15)/(w/15),ch=Math.max(120,(h-p.mt-p.mb)/15*sc);
+  const th=t=>Math.max(26,parseFloat(t.style.height)||26),pnH=k=>hf.pn===k?20:0;
+  const headH=p.hd/15+4+th(H.t)+pnH('header'),footH=p.fd/15+4+th(F.t)+pnH('footer');
+  const padT=Math.max(6,p.mt/15-headH),padB=Math.max(6,p.mb/15-footH);
+  ed.style.paddingTop=padT+'px';ed.style.paddingBottom=padB+'px';
+  const ch=Math.max(120,(h-p.mt-p.mb)/15);
   ed.style.setProperty('--wpc',ch+'px');ed.classList.toggle('wpguide',guideOn());
-  const ar=O.wordDir==='rtl'||AR.test((hf.header||'')+(hf.footer||'')+(ed.textContent||'').slice(0,300)),pages=Math.max(1,Math.ceil(ed.scrollHeight/ch)),start=Number.isFinite(+hf.ps)?+hf.ps:1;
+  const ar=O.wordDir==='rtl'||AR.test((hf.header||'')+(hf.footer||'')+(ed.textContent||'').slice(0,300)),pages=Math.max(1,Math.ceil(Math.max(0,ed.scrollHeight-padT-padB)/ch)),start=Number.isFinite(+hf.ps)?+hf.ps:1;
   for(const [b,key] of [[H,'header'],[F,'footer']]){const on=hf.pn===key;b.n.style.display=on?'block':'none';if(on){b.n.textContent=fpn(hf,ar,start,start+pages-1);b.n.style.textAlign=hf.pa}}
-  H.b.classList.toggle('has',!!(hf.header||hf.pn==='header'));F.b.classList.toggle('has',!!(hf.footer||hf.pn==='footer'))}
+  H.b.classList.toggle('has',!!(hf.header||hf.pn==='header'));F.b.classList.toggle('has',!!(hf.footer||hf.pn==='footer'));
+  if(Z.lab)Z.lab.textContent=Math.round(fit*Z.z*100)+'%'}
+ // ---- zoom: pinch with two fingers, or the − / + pill (tap the % to fit the page to the screen) ----
+ const setZoom=(nz,cx,cy)=>{const lo=0.5,hi=Math.max(1.5,2.5/(Z.fit||1));nz=Math.max(lo,Math.min(hi,nz));const old=Z.z;if(Math.abs(nz-old)<0.001)return;
+  const r=sc.getBoundingClientRect(),rtl=getComputedStyle(sc).direction==='rtl';if(cx==null){cx=r.left+r.width/2;cy=r.top+r.height/2}
+  const ox=cx-r.left,oy=cy-r.top,left=rtl?sc.scrollWidth-sc.clientWidth+sc.scrollLeft:sc.scrollLeft,x=left+ox,y=sc.scrollTop+oy,k=nz/old;
+  Z.z=nz;refresh();const nl=x*k-ox;sc.scrollLeft=rtl?nl-(sc.scrollWidth-sc.clientWidth):nl;sc.scrollTop=y*k-oy};
+ const zm=E('div','wpzm'),zb=(t,f,c)=>{const b=E('button',c||'',t);b.type='button';b.onclick=f;return b};
+ Z.lab=zb('100%',()=>setZoom(1),'pct');zm.append(zb('−',()=>setZoom(Z.z/1.25)),Z.lab,zb('+',()=>setZoom(Z.z*1.25)));document.body.append(zm);
+ let pd=0,pz=1,pr=0;const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+ const ts=e=>{if(e.touches.length===2){pd=dist(e.touches);pz=Z.z}},
+  tm=e=>{if(e.touches.length===2&&pd){e.preventDefault();const cx=(e.touches[0].clientX+e.touches[1].clientX)/2,cy=(e.touches[0].clientY+e.touches[1].clientY)/2,nz=pz*dist(e.touches)/pd;cancelAnimationFrame(pr);pr=requestAnimationFrame(()=>setZoom(nz,cx,cy))}},
+  te=e=>{if(e.touches.length<2)pd=0};
+ sc.addEventListener('touchstart',ts,{passive:true});sc.addEventListener('touchmove',tm,{passive:false});sc.addEventListener('touchend',te,{passive:true});sc.addEventListener('touchcancel',te,{passive:true});
  const later=()=>{clearTimeout(tmr);tmr=setTimeout(()=>{if(CUR&&CUR.ed===ed)refresh()},350)};
  ed.addEventListener('input',later);
   // ---- auto smart direction: each paragraph follows its own language while typing ----
@@ -120,7 +140,7 @@ function mount(ctx){
   const leafBlk=n=>{let e=elOf(n);while(e&&e!==ed){if(e.matches&&e.matches(BLOCKS+',td,th')&&!e.querySelector(BLOCKS+',table'))return e;e=e.parentElement}return null};
   ed.addEventListener('input',()=>{if(!autoOn()||O.wordDir!=='auto')return;const s=getSelection(),b=s.rangeCount?leafBlk(s.anchorNode):null;if(!b||b.hasAttribute('data-page-break'))return;
    const d=domDir(b.textContent||'');if(!d)return;const c=b.getAttribute('dir');if(c&&!b.dataset.ad)return;if(c!==d){b.setAttribute('dir',d);b.dataset.ad='1'}});
- let ro=null;try{ro=new ResizeObserver(later);ro.observe(pg)}catch(e){}
+ let ro=null;try{ro=new ResizeObserver(later);ro.observe(pg);if(sc)ro.observe(sc)}catch(e){}
  const applyDir=()=>{if(O.wordDir==='rtl'||O.wordDir==='ltr')ed.setAttribute('dir',O.wordDir);else ed.removeAttribute('dir')};
  applyDir();refresh();
  // existing .docx: read page size/margins/header/footer/direction from the file (mammoth drops them)
@@ -317,7 +337,7 @@ function mount(ctx){
   image:[{t:'🖼 صورة',f:pickImage},{t:'⚙ الصورة',f:()=>{if(img&&img.isConnected)selectImg(img);else toast('اضغط على الصورة في المستند الأول')},title:'خصائص الصورة'}],
   page:[{t:'📄 الصفحة',f:()=>pageDialog('page')},{t:'↔ الهوامش',f:()=>pageDialog('margins')},{t:'🔤 رأس/تذييل',f:()=>pageDialog('hf')},{t:'🔢 ترقيم',f:()=>pageDialog('pn')},{t:'⎘ فاصل صفحة',f:insertBreak},{t:'↧ صفحة جديدة قبل الفقرة',f:togglePB}]
  };
- return {items,refresh,cleanup(){clearTimeout(tmr);try{ro&&ro.disconnect()}catch(e){}deselect();ed.removeEventListener('click',onClick);if(CUR&&CUR.ed===ed)CUR=null}}
+ return {items,refresh,cleanup(){clearTimeout(tmr);cancelAnimationFrame(pr);zm.remove();sc.removeEventListener('touchstart',ts);sc.removeEventListener('touchmove',tm);sc.removeEventListener('touchend',te);sc.removeEventListener('touchcancel',te);try{ro&&ro.disconnect()}catch(e){}deselect();ed.removeEventListener('click',onClick);if(CUR&&CUR.ed===ed)CUR=null}}
 }
 
 // ---------------- read page setup / header / footer from an existing .docx ----------------

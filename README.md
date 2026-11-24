@@ -60,3 +60,15 @@ All internal identifiers use the Reader All name: IndexedDB `readerall`, localSt
 - **Page numbers**: header or footer, alignment, formats (1 / صفحة 1 / صفحة 1 من N / - 1 -), digits (1 2 3 / ١ ٢ ٣ / roman), start number, hide on first page.
 - **Page breaks**: ⎘ inserts a visible break; ↧ starts the current paragraph on a new page. Page guides in the editor are approximate.
 - Not covered: this source was only syntax-checked (no device or Word test).
+
+## Word page view (real Office layout)
+
+- The sheet is drawn at the real paper size (A4 = 21 × 29.7 cm, 1 inch margins, header/footer distances) and scaled to fit the screen width, instead of reflowing into a narrow phone column.
+- Default typography matches Word: Calibri 11 pt, line spacing 1.08, 8 pt after each paragraph. New .docx exports use the same defaults (11 pt, 1.08, 8 pt after).
+- Zoom: pinch with two fingers, or use the − / + pill at the bottom-left (tap the % to fit to the screen). Print / PDF export ignore the screen zoom.
+- Calibri is not bundled on Android; the browser substitutes a similar font, so line breaks can differ slightly from Word on a PC.
+
+## Fonts
+
+- The Word font list now really changes the text on Android. Latin fonts are bundled in `fonts/` (subset, ~430 KB) and registered under the Office names: Calibri→Carlito, Cambria→Caladea, Arial→Liberation Sans, Times New Roman→Liberation Serif, Courier New→Liberation Mono, Georgia→Gelasio, Tahoma/Verdana/Segoe UI/Trebuchet MS→Open Sans (metric-compatible or look-alike open fonts; the file keeps the original name).
+- Arabic fonts (Cairo, Amiri, Tajawal, Almarai, Noto Naskh/Kufi; Traditional/Simplified Arabic → Noto Naskh; Sakkal Majalla/Arabic Typesetting → Amiri) are bundled at build time from `@fontsource/*` by `scripts/arabic-fonts.py`. This step needs `npm install` and was only tested with mock files; a missing package prints a warning and that font falls back to the system font.

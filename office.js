@@ -241,6 +241,16 @@ async function longToPdf(el,ratio){const h2c=await need('h2c'),L=await need('pl'
   const jb=await new Promise(r=>s.toBlob(r,'image/jpeg',.92)),im=await pdf.embedJpg(await jb.arrayBuffer());const pg=pdf.addPage([pw,ph]);pg.drawImage(im,{x:0,y:0,width:pw,height:ph});s.width=s.height=0}
  cv.width=cv.height=0;return new Blob([await pdf.save()],{type:'application/pdf'})}
 const withZoom=async(el,f)=>{const z=el.style.zoom;el.style.zoom=1;try{return await f()}finally{el.style.zoom=z}};
+// two-finger pinch zoom for any scrollable view: get() = current zoom, set(z) applies it; keeps the point between the fingers in place
+function pinchZoom(host,sc,get,set,lo=.3,hi=4){let pd=0,pz=1,raf=0;
+ const D=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+ const apply=(nz,cx,cy)=>{nz=Math.max(lo,Math.min(hi,nz));const old=get();if(Math.abs(nz-old)<.002)return;
+  const r=sc.getBoundingClientRect(),rtl=getComputedStyle(sc).direction==='rtl',ox=cx-r.left,oy=cy-r.top,
+   left=rtl?sc.scrollWidth-sc.clientWidth+sc.scrollLeft:sc.scrollLeft,x=left+ox,y=sc.scrollTop+oy,k=nz/old;
+  set(nz);const nl=x*k-ox;sc.scrollLeft=rtl?nl-(sc.scrollWidth-sc.clientWidth):nl;sc.scrollTop=y*k-oy};
+ host.addEventListener('touchstart',e=>{if(e.touches.length===2){pd=D(e.touches);pz=get()}},{passive:true});
+ host.addEventListener('touchmove',e=>{if(e.touches.length===2&&pd){e.preventDefault();const t=e.touches,cx=(t[0].clientX+t[1].clientX)/2,cy=(t[0].clientY+t[1].clientY)/2,nz=pz*D(t)/pd;cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>apply(nz,cx,cy))}},{passive:false});
+ const end=e=>{if(e.touches.length<2)pd=0};host.addEventListener('touchend',end,{passive:true});host.addEventListener('touchcancel',end,{passive:true})}
 function zoomBtns(getEl){return [{t:'＋',f:()=>{O.z=Math.min(3,O.z*1.2);getEl().style.zoom=O.z},title:'تكبير'},{t:'－',f:()=>{O.z=Math.max(.3,O.z/1.2);getEl().style.zoom=O.z},title:'تصغير'}]}
 
 // ====================== WORD ======================
@@ -248,7 +258,7 @@ async function wordView(){
  const dp=await need('dp');$('#ofm').className='ofscroll';$('#ofm').innerHTML='<div class="ofw"></div>';const w=$('#ofm').firstChild;
  await dp.renderAsync(O.buf.slice(0),w,null,{inWrapper:true,breakPages:true,useBase64URL:true,renderHeaders:true,renderFooters:true,ignoreLastRenderedPageBreak:false});
  const secs=[...w.querySelectorAll('section.docx')],mw=Math.max(1,...secs.map(s=>s.offsetWidth));O.z=Math.min(1,($('#ofm').clientWidth-8)/mw);w.style.zoom=O.z;O.w=w;
- setBar([{t:'✏️ تعديل',f:()=>openOffice(O.d,{edit:1})},{t:'⬇ DOCX',f:()=>dl(new Blob([O.buf],{type:MIME.doc}),O.d.n+'.docx')},'|',...zoomBtns(()=>w)])}
+ setBar([{t:'✏️ تعديل',f:()=>openOffice(O.d,{edit:1})},{t:'⬇ DOCX',f:()=>dl(new Blob([O.buf],{type:MIME.doc}),O.d.n+'.docx')},'|',...zoomBtns(()=>w)]);pinchZoom(w,$('#ofm'),()=>O.z,z=>{O.z=z;w.style.zoom=z})}
 
 async function wordEdit(){
  let html=O.opt.html||'<p><br></p>';
@@ -369,7 +379,7 @@ function tbl(dx,t,root){const W=window.WordPro,live=!!W&&t.isConnected,M=live?W.
  if(live){o.borders=dx.TableBorders.NONE;const al=W.tableAlign(dx,t,rtl);if(al)o.alignment=al}
  return new dx.Table(o)}
 async function htmlToDocx(dx,ed,opt){LI=0;PB=false;const ch=[];blocks(dx,ed,ed,ch);if(PB){ch.push(new dx.Paragraph({pageBreakBefore:true}));PB=false}if(!ch.length)ch.push(new dx.Paragraph({}));
- const doc=new dx.Document({styles:{default:{document:{run:{font:{ascii:'Calibri',hAnsi:'Calibri',cs:'Arial',eastAsia:'Calibri'},size:24}}}},
+ const doc=new dx.Document({styles:{default:{document:{run:{font:{ascii:'Calibri',hAnsi:'Calibri',cs:'Arial',eastAsia:'Calibri'},size:22},paragraph:{spacing:{after:160,line:259}}}}},
   numbering:{config:[{reference:'num',levels:[0,1,2,3].map(l=>({level:l,format:dx.LevelFormat.DECIMAL,text:'%'+(l+1)+'.',alignment:dx.AlignmentType.START,style:{paragraph:{indent:{left:720*(l+1),hanging:360}}}}))}]},
   sections:[Object.assign({children:ch},window.WordPro?window.WordPro.section(dx,opt&&opt.live?O:null):{properties:{}})]});
  return dx.Packer.toBlob(doc)}
@@ -472,7 +482,7 @@ async function xlsOpen(){const M=await xlsParse(O.buf.slice(0));
  XS={X:M,cur:0,sel:{r1:0,c1:0,r2:0,c2:0},undo:[],redo:[],clip:null,ext:0};
  for(const sh of M.sheets)await recalc(sh,false);
  const m=$('#ofm');m.className='ofx';m.innerHTML='<div id="xfb"><span id="xad">A1</span><input id="xin" dir="auto" autocomplete="off" enterkeyhint="done"><button id="xok" aria-label="تأكيد">✓</button></div><div id="xg"><div id="xi"></div></div><div id="xtabs"></div>';
- const g=$('#xg');g.addEventListener('scroll',()=>{if(XS.raf)return;XS.raf=requestAnimationFrame(()=>{XS.raf=0;const sh=curSh();if(g.scrollTop+g.clientHeight>HH+sh.NR*RH-300&&sh.NR<5000)sh.NR+=50;xrender()})},{passive:true});
+ const g=$('#xg');XS.z=1;pinchZoom(g,g,()=>XS.z,z=>{XS.z=z;xrender()},.5,3);g.addEventListener('scroll',()=>{if(XS.raf)return;XS.raf=requestAnimationFrame(()=>{XS.raf=0;const sh=curSh();if((g.scrollTop+g.clientHeight)/(XS.z||1)>HH+sh.NR*RH-300&&sh.NR<5000)sh.NR+=50;xrender()})},{passive:true});
  g.addEventListener('click',xclick);
  const inp=$('#xin');inp.addEventListener('focus',()=>{XS.edit={r:XS.sel.r1,c:XS.sel.c1,raw:inp.value}});
  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();moveSel(1,0)}});
@@ -491,8 +501,8 @@ function xclick(e){const sh=curSh(),s=XS.sel;const td=e.target.closest('td[data-
  else return;xrender();loadFB()}
 function xrender(){const sh=curSh(),g=$('#xg'),xi=$('#xi');if(!g||!xi)return;
  const cw=c=>sh.cw[c]||DCW,xs=[0];for(let c=0;c<sh.NC;c++)xs.push(xs[c]+cw(c));const tw=HW+xs[sh.NC];
- xi.style.width=tw+'px';xi.style.height=(HH+sh.NR*RH)+'px';
- let r0=Math.max(0,Math.floor((g.scrollTop-HH)/RH)-4);const r1=Math.min(sh.NR,Math.ceil((g.scrollTop+g.clientHeight)/RH)+4);
+ const z=XS.z||1;xi.style.zoom=String(z);xi.style.width=tw+'px';xi.style.height=(HH+sh.NR*RH)+'px';
+ let r0=Math.max(0,Math.floor((g.scrollTop/z-HH)/RH)-4);const r1=Math.min(sh.NR,Math.ceil((g.scrollTop+g.clientHeight)/z/RH)+4);
  const mg={},cov={};for(const m of sh.merges){if(m[2]<r0||m[0]>=r1)continue;if(m[0]<r0&&m[2]>=r0)r0=m[0]}
  for(const m of sh.merges){if(m[2]<r0||m[0]>=r1)continue;mg[K(m[0],m[1])]=m;for(let r=m[0];r<=m[2];r++)for(let c=m[1];c<=m[3];c++)if(r!==m[0]||c!==m[1])cov[K(r,c)]=1}
  const q=rng(),a=XS.sel;
@@ -813,7 +823,7 @@ async function pptView(){const pv=await need('pp');$('#ofm').className='ofscroll
  const p=pv.init(w,{width:W,height:H});await p.preview(O.buf.slice(0));O.w=w;
  const slides=()=>{let s=[...w.querySelectorAll('.pptx-preview-slide-wrapper')];if(!s.length)s=[...w.querySelectorAll('[class*="slide-wrapper"]')];return s};
  const mbtn=await pptMediaSetup(w,slides);
- setBar([{t:'▶ تشغيل',f:()=>window.pptPlay&&window.pptPlay()},{t:'✏️ تعديل',f:()=>window.pptEdit&&window.pptEdit()},{t:'⬇ PPTX',f:()=>dl(new Blob([O.buf],{type:MIME.ppt}),O.d.n+'.pptx')},{t:'🖨 طباعة',f:printOffice},{t:'🔐 نسخة مشفرة',f:encryptedExport},'|',...zoomBtns(()=>w),...mbtn])}
+ setBar([{t:'▶ تشغيل',f:()=>window.pptPlay&&window.pptPlay()},{t:'✏️ تعديل',f:()=>window.pptEdit&&window.pptEdit()},{t:'⬇ PPTX',f:()=>dl(new Blob([O.buf],{type:MIME.ppt}),O.d.n+'.pptx')},{t:'🖨 طباعة',f:printOffice},{t:'🔐 نسخة مشفرة',f:encryptedExport},'|',...zoomBtns(()=>w),...mbtn]);pinchZoom(w,$('#ofm'),()=>O.z,z=>{O.z=z;w.style.zoom=z})}
 
 // ---------- منتقي الألوان (ألوان الثيم + قياسية + آخر المستخدمة) ----------
 /*CP-START*/
