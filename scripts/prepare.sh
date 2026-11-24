@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Copies the web app into www/ and bundles every library locally so the APK works fully offline.
 set -euo pipefail
-rm -rf www && mkdir -p www/lib
-cp index.html app.js ui.js wordtpl.js office.js wordpro.js pptedit.js scan.js office.css style.css manifest.json icon-192.png icon-512.png icon-maskable-512.png native/native.js www/
+rm -rf www && mkdir -p www/lib www/fonts
+cp index.html app.js ui.js wordtpl.js office.js wordpro.js pptedit.js scan.js office.css style.css manifest.json icon-192.png icon-512.png icon-maskable-512.png native/native.js fonts.css www/
+cp fonts/*.woff www/fonts/
+# Arabic fonts (Cairo, Amiri, Tajawal, Almarai, Noto Naskh/Kufi) are bundled from npm; a missing one only prints a warning
+python3 scripts/arabic-fonts.py
 B=https://cdnjs.cloudflare.com/ajax/libs
 # ---- Office libs (from npm) — a missing one only disables that feature; office.js falls back to a CDN ----
 cpf(){ # cpf <dest-name> <pkg-dir> <find-pattern>...
